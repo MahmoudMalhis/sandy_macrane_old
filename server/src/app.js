@@ -31,23 +31,27 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim());
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: function (origin, callback) {
+      // السماح للطلبات بدون origin (مثلاً Postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
-
-app.use((req, res, next) => {
-  res.header(
-    "Access-Control-Allow-Origin",
-    process.env.CORS_ORIGIN || "http://localhost:5173"
-  );
-  res.header("Cross-Origin-Resource-Policy", "cross-origin");
-  next();
-});
 
 // Rate limiting
 app.use(rateLimiter);
