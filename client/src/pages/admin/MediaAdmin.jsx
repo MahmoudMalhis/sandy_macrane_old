@@ -180,6 +180,7 @@ const MediaAdmin = () => {
           setSelectedMedia(mediaItem);
           setShowEditModal(true);
         }}
+        onMediaUpdate={handleMediaUpdate}
         onMediaReorder={handleMediaReorder}
       />
 

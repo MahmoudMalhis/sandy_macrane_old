@@ -44,6 +44,35 @@ const albumValidation = [
   body("tags").optional().isArray().withMessage("Tags must be an array"),
 ];
 
+const albumUpdateValidation = [
+  body("title")
+    .optional() // ✅ جعله optional
+    .trim()
+    .notEmpty()
+    .withMessage("Title cannot be empty")
+    .isLength({ max: 255 })
+    .withMessage("Title must not exceed 255 characters"),
+  body("category")
+    .optional() // ✅ جعله optional
+    .isIn(["macrame", "frame"])
+    .withMessage("Category must be either macrame or frame"),
+  body("description")
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage("Description must not exceed 1000 characters"),
+  body("maker_note")
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage("Maker note must not exceed 500 characters"),
+  body("status")
+    .optional()
+    .isIn(["draft", "published"])
+    .withMessage("Status must be either draft or published"),
+  body("tags").optional().isArray().withMessage("Tags must be an array"),
+];
+
 // Query validation for filtering
 const queryValidation = [
   query("page")
@@ -76,7 +105,7 @@ router.get("/admin", queryValidation, validate, getAllAdmin);
 router.get("/admin/stats", getStats);
 router.get("/admin/:id", getById);
 router.post("/admin", albumValidation, validate, create);
-router.put("/admin/:id", albumValidation, validate, update);
+router.put("/admin/:id", albumUpdateValidation, validate, update);
 router.delete("/admin/:id", deleteAlbum);
 
 export default router;

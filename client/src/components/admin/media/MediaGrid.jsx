@@ -1,4 +1,3 @@
-// client/src/components/admin/media/MediaGrid.jsx
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -13,19 +12,6 @@ import {
 } from "lucide-react";
 import Button from "../../common/Button";
 
-/**
- * مكون شبكة عرض الوسائط مع إمكانية السحب والإفلات المحسنة
- * @param {Array} media - قائمة الوسائط
- * @param {Array} selectedImages - الصور المحددة
- * @param {Function} setSelectedImages - دالة تحديد الصور
- * @param {number} selectedItemForReorder - العنصر المحدد للترتيب
- * @param {Function} onSelectForReorder - دالة تحديد عنصر للترتيب
- * @param {Function} onMediaDelete - دالة حذف الوسائط
- * @param {Function} onMediaEdit - دالة تعديل الوسائط
- * @param {Function} onDragStart - دالة بداية السحب
- * @param {Function} onDragEnd - دالة انتهاء السحب
- * @param {Function} onMediaUpdate - دالة تحديث الوسائط
- */
 const MediaGrid = ({
   media,
   selectedImages,
@@ -37,13 +23,11 @@ const MediaGrid = ({
   onDragStart,
   onDragEnd,
   onMediaUpdate,
+  onMediaReorder,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
 
-  /**
-   * معالجة تحديد/إلغاء تحديد صورة
-   */
   const toggleImageSelection = (mediaId) => {
     setSelectedImages((prev) =>
       prev.includes(mediaId)
@@ -52,9 +36,6 @@ const MediaGrid = ({
     );
   };
 
-  /**
-   * تحديد/إلغاء تحديد جميع الصور
-   */
   const toggleSelectAll = () => {
     if (selectedImages.length === media.length) {
       setSelectedImages([]);
@@ -63,44 +44,45 @@ const MediaGrid = ({
     }
   };
 
-  /**
-   * معالجة بداية السحب
-   */
   const handleDragStart = (start) => {
     setIsDragging(true);
     const draggedItemData = media[start.source.index];
     setDraggedItem(draggedItemData);
 
-    // استدعاء الدالة الخارجية
     if (onDragStart) {
       onDragStart(start);
     }
 
-    // إضافة كلاس للجسم لتغيير cursor
     document.body.style.cursor = "grabbing";
     document.body.classList.add("dragging");
   };
 
-  /**
-   * معالجة انتهاء السحب
-   */
   const handleDragEnd = (result) => {
     setIsDragging(false);
     setDraggedItem(null);
 
-    // إزالة كلاسات cursor
     document.body.style.cursor = "";
     document.body.classList.remove("dragging");
 
-    // استدعاء الدالة الخارجية
-    if (onDragEnd) {
-      onDragEnd(result);
+    if (!result.destination) {
+      return;
+    }
+
+    const { source, destination } = result;
+
+    if (source.index === destination.index) {
+      return;
+    }
+
+    const reorderedMedia = Array.from(media);
+    const [removed] = reorderedMedia.splice(source.index, 1);
+    reorderedMedia.splice(destination.index, 0, removed);
+
+    if (onMediaReorder) {
+      onMediaReorder(reorderedMedia);
     }
   };
 
-  /**
-   * معالجة حذف الصور المحددة
-   */
   const handleDeleteSelected = () => {
     if (selectedImages.length === 0) return;
 
@@ -109,9 +91,6 @@ const MediaGrid = ({
     }
   };
 
-  /**
-   * معالجة تعيين صورة كغلاف
-   */
   const handleSetAsCover = async (mediaId) => {
     try {
       await onMediaUpdate(mediaId, { is_cover: true });
@@ -136,7 +115,6 @@ const MediaGrid = ({
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      {/* أدوات التحكم */}
       <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-semibold">الصور ({media.length})</h2>
@@ -155,7 +133,6 @@ const MediaGrid = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* تحديد الكل */}
           <Button
             variant="outline"
             onClick={toggleSelectAll}
@@ -171,7 +148,6 @@ const MediaGrid = ({
               : "تحديد الكل"}
           </Button>
 
-          {/* حذف المحدد */}
           {selectedImages.length > 0 && (
             <Button
               variant="danger"
@@ -185,7 +161,6 @@ const MediaGrid = ({
         </div>
       </div>
 
-      {/* تعليمات السحب */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-700 flex items-center gap-2">
           <GripVertical className="w-4 h-4" />
@@ -194,9 +169,13 @@ const MediaGrid = ({
         </p>
       </div>
 
-      {/* شبكة الصور مع السحب والإفلات */}
       <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <Droppable droppableId="media-grid" direction="horizontal">
+        <Droppable
+          droppableId="media-grid"
+          direction="horizontal"
+          isDropDisabled={false}
+          isCombineEnabled={false}
+        >
           {(provided, snapshot) => (
             <div
               {...provided.droppableProps}
@@ -240,16 +219,14 @@ const MediaGrid = ({
                         damping: 25,
                       }}
                     >
-                      {/* معالج السحب */}
                       <div
                         {...provided.dragHandleProps}
-                        className="absolute top-2 left-2 bg-black bg-opacity-70 text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-20"
+                        className="absolute top-2 left-2 bg-purple bg-opacity-70 text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-20"
                         title="اسحب لإعادة الترتيب"
                       >
                         <GripVertical className="w-4 h-4" />
                       </div>
 
-                      {/* مربع التحديد */}
                       <button
                         onClick={() => toggleImageSelection(item.id)}
                         className="absolute top-2 right-2 z-20 transition-all duration-200"
@@ -257,11 +234,10 @@ const MediaGrid = ({
                         {selectedImages.includes(item.id) ? (
                           <CheckSquare className="w-5 h-5 text-purple bg-white rounded shadow-sm" />
                         ) : (
-                          <Square className="w-5 h-5 text-white bg-black bg-opacity-50 rounded opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <Square className="w-5 h-5 text-white bg-purple bg-opacity-50 rounded opacity-0 group-hover:opacity-100 transition-opacity" />
                         )}
                       </button>
 
-                      {/* علامة الغلاف */}
                       {item.is_cover && (
                         <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold z-20 shadow-lg">
                           <Star className="w-3 h-3 inline ml-1" />
@@ -269,7 +245,6 @@ const MediaGrid = ({
                         </div>
                       )}
 
-                      {/* الصورة */}
                       <div className="aspect-square overflow-hidden">
                         <img
                           src={item.url}
@@ -283,7 +258,6 @@ const MediaGrid = ({
                         />
                       </div>
 
-                      {/* معلومات الصورة */}
                       <div className="p-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-gray-700 truncate flex-1">
@@ -295,7 +269,6 @@ const MediaGrid = ({
                               #{index + 1}
                             </span>
 
-                            {/* زر التحديد للترتيب */}
                             {onSelectForReorder && (
                               <button
                                 onClick={() => onSelectForReorder(item.id)}
@@ -317,8 +290,7 @@ const MediaGrid = ({
                         </div>
                       </div>
 
-                      {/* أدوات التحكم عند hover */}
-                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
+                      <div className="absolute inset-0 bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 z-10">
                         {!item.is_cover && (
                           <Button
                             size="sm"
@@ -333,7 +305,7 @@ const MediaGrid = ({
                         <Button
                           size="sm"
                           onClick={() => onMediaEdit(item)}
-                          className="bg-white text-gray-800 hover:bg-gray-100 shadow-lg"
+                          className="shadow-lg"
                           title="تعديل"
                         >
                           <Edit className="w-4 h-4" />

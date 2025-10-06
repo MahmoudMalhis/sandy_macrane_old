@@ -307,49 +307,51 @@ export default function AlbumsAdmin() {
     }
   };
 
-const toggleStatus = async (albumId) => {
-  try {
-    const album = albums.find((a) => a.id === albumId);
-    if (!album) return;
+  const toggleStatus = async (albumId) => {
+    try {
+      const album = albums.find((a) => a.id === albumId);
+      if (!album) return;
 
-    const newStatus = album.status === "published" ? "draft" : "published";
+      const newStatus = album.status === "published" ? "draft" : "published";
 
-    // معالجة tags إذا كانت string
-    let tagsArray = album.tags || [];
-    if (typeof tagsArray === "string") {
-      try {
-        tagsArray = JSON.parse(tagsArray);
-      } catch {
-        tagsArray = [];
+      // معالجة tags إذا كانت string
+      let tagsArray = album.tags || [];
+      if (typeof tagsArray === "string") {
+        try {
+          tagsArray = JSON.parse(tagsArray);
+        } catch {
+          tagsArray = [];
+        }
       }
-    }
 
-    // إرسال جميع البيانات المطلوبة
-    const updateData = {
-      title: album.title,
-      category: album.category,
-      description: album.description || "",
-      maker_note: album.maker_note || "",
-      status: newStatus,
-      tags: tagsArray,
-    };
+      // إرسال جميع البيانات المطلوبة
+      const updateData = {
+        title: album.title,
+        category: album.category,
+        description: album.description || "",
+        maker_note: album.maker_note || "",
+        status: newStatus,
+        tags: tagsArray,
+      };
 
-    const response = await adminAPI.updateAlbum(albumId, updateData);
+      const response = await adminAPI.updateAlbum(albumId, updateData);
 
-    if (response.success) {
-      toast.success(
-        `تم تغيير الحالة إلى ${newStatus === "published" ? "منشور" : "مسودة"}!`
-      );
-      fetchAlbums();
-      fetchStats();
-    } else {
+      if (response.success) {
+        toast.success(
+          `تم تغيير الحالة إلى ${
+            newStatus === "published" ? "منشور" : "مسودة"
+          }!`
+        );
+        fetchAlbums();
+        fetchStats();
+      } else {
+        toast.error("فشل في تغيير الحالة");
+      }
+    } catch (error) {
+      console.error("Error toggling status:", error);
       toast.error("فشل في تغيير الحالة");
     }
-  } catch (error) {
-    console.error("Error toggling status:", error);
-    toast.error("فشل في تغيير الحالة");
-  }
-};
+  };
 
   const openEditModal = (album) => {
     setSelectedAlbum(album);
@@ -496,7 +498,7 @@ const toggleStatus = async (albumId) => {
               placeholder="البحث في الألبومات..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
+              className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
             />
             <Search
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"

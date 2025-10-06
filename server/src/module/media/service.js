@@ -233,6 +233,36 @@ class MediaService {
       throw error;
     }
   }
+
+  // Bulk delete media
+  static async bulkDelete(mediaIds) {
+    try {
+      if (!Array.isArray(mediaIds) || mediaIds.length === 0) {
+        throw new Error("mediaIds array is required");
+      }
+
+      const deletedMedia = [];
+
+      // حذف كل صورة على حدة للتعامل مع الملفات الفيزيائية بشكل صحيح
+      for (const id of mediaIds) {
+        try {
+          const media = await this.delete(id);
+          deletedMedia.push(media);
+        } catch (error) {
+          console.error(`Failed to delete media ${id}:`, error);
+          // نستمر في حذف باقي الصور حتى لو فشلت واحدة
+        }
+      }
+
+      return {
+        deletedCount: deletedMedia.length,
+        failedCount: mediaIds.length - deletedMedia.length,
+        deletedMedia,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 // Export named functions
@@ -243,6 +273,7 @@ export const getById = MediaService.getById.bind(MediaService);
 export const getByAlbum = MediaService.getByAlbum.bind(MediaService);
 export const update = MediaService.update.bind(MediaService);
 export const reorder = MediaService.reorder.bind(MediaService);
+export const bulkDelete = MediaService.bulkDelete.bind(MediaService);
 
 // Export delete with alternative name to avoid keyword conflict
 export const deleteMedia = MediaService.delete.bind(MediaService);

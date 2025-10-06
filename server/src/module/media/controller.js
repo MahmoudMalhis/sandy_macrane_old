@@ -2,20 +2,19 @@ import {
   addMultipleToAlbum,
   getByAlbum,
   update as _update,
-  deleteMedia as _delete, // تم تغيير هذا السطر
+  deleteMedia as _delete,
   reorder as _reorder,
+  bulkDelete as _bulkDelete,
 } from "./service.js";
 import { getById } from "../albums/service.js";
 import { processUploadedFiles } from "../../utils/upload.js";
 import { info, error as _error } from "../../utils/logger.js";
 
 class MediaController {
-  // Upload media to album (admin)
   static async uploadToAlbum(req, res) {
     try {
       const { albumId } = req.params;
 
-      // Check if album exists
       await getById(parseInt(albumId), false);
 
       if (!req.files || req.files.length === 0) {
@@ -25,10 +24,8 @@ class MediaController {
         });
       }
 
-      // Process uploaded files
       const processedFiles = processUploadedFiles(req, req.files);
 
-      // Add media to album
       const mediaData = processedFiles.map((file) => ({
         url: file.url,
         alt: req.body.alt || file.originalname,
@@ -68,12 +65,10 @@ class MediaController {
     }
   }
 
-  // Get album media (admin)
   static async getAlbumMedia(req, res) {
     try {
       const { albumId } = req.params;
 
-      // Check if album exists
       await getById(parseInt(albumId), false);
 
       const media = await getByAlbum(parseInt(albumId));
@@ -102,7 +97,6 @@ class MediaController {
     }
   }
 
-  // Update media (admin)
   static async update(req, res) {
     try {
       const { id } = req.params;
@@ -141,7 +135,6 @@ class MediaController {
     }
   }
 
-  // Delete media (admin)
   static async delete(req, res) {
     try {
       const { id } = req.params;
@@ -179,7 +172,6 @@ class MediaController {
     }
   }
 
-  // Reorder media in album (admin)
   static async reorder(req, res) {
     try {
       const { albumId } = req.params;
@@ -192,7 +184,6 @@ class MediaController {
         });
       }
 
-      // Check if album exists
       await getById(parseInt(albumId), false);
 
       const media = await _reorder(parseInt(albumId), mediaIds);
@@ -227,15 +218,52 @@ class MediaController {
       });
     }
   }
+
+  static async bulkDelete(req, res) {
+    try {
+      const { mediaIds } = req.body;
+
+      if (!Array.isArray(mediaIds) || mediaIds.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "mediaIds array is required",
+        });
+      }
+
+      const result = await _bulkDelete(mediaIds);
+
+      info("Bulk media delete", {
+        requestedCount: mediaIds.length,
+        deletedCount: result.deletedCount,
+        failedCount: result.failedCount,
+        deletedBy: req.user.email,
+      });
+
+      res.json({
+        success: true,
+        message: `تم حذف ${result.deletedCount} صورة بنجاح`,
+        data: result,
+      });
+    } catch (error) {
+      _error("Bulk delete media failed", {
+        deletedBy: req.user?.email,
+        error: error.message,
+      });
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to delete media",
+      });
+    }
+  }
 }
 
-// Export named functions
 export const uploadToAlbum = MediaController.uploadToAlbum;
 export const getAlbumMedia = MediaController.getAlbumMedia;
 export const update = MediaController.update;
 export const reorder = MediaController.reorder;
+export const bulkDelete = MediaController.bulkDelete;
 
-// Export delete with alternative name
 export { MediaController as delete };
 export const deleteMedia = MediaController.delete;
 

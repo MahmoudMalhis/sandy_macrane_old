@@ -14,6 +14,7 @@ export default function Button({
     outline:
       "border-2 border-purple text-purple hover:bg-purple hover:text-white",
     ghost: "text-purple hover:bg-purple hover:text-white",
+    danger: "bg-red-500 text-white hover:bg-red-600",
   };
 
   const sizes = {

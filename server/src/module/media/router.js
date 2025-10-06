@@ -6,6 +6,7 @@ import {
   reorder,
   update,
   delete as deleteMedia,
+  bulkDelete,
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";
@@ -13,7 +14,6 @@ import { upload } from "../../utils/upload.js";
 
 const router = Router();
 
-// Media update validation
 const mediaUpdateValidation = [
   body("alt")
     .optional()
@@ -30,7 +30,6 @@ const mediaUpdateValidation = [
     .withMessage("sort_order must be a non-negative integer"),
 ];
 
-// Reorder validation
 const reorderValidation = [
   body("mediaIds")
     .isArray()
@@ -43,16 +42,15 @@ const reorderValidation = [
     }),
 ];
 
-// All routes require authentication
+
 router.use(authGuard);
 
-// Album media routes
 router.post("/album/:albumId", upload.array("media_files", 10), uploadToAlbum);
 router.get("/album/:albumId", getAlbumMedia);
 router.post("/album/:albumId/reorder", reorderValidation, validate, reorder);
+router.delete("/admin/bulk-delete", bulkDelete);
 
-// Individual media routes
-router.put("/:id", mediaUpdateValidation, validate, update);
-router.delete("/:id", deleteMedia);
+router.put("/admin/:id", mediaUpdateValidation, validate, update);
+router.delete("/admin/:id", deleteMedia);
 
 export default router;

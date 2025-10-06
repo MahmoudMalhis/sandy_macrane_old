@@ -74,7 +74,7 @@ const MediaUploader = ({ albumId, onUploadSuccess }) => {
     try {
       const formData = new FormData();
       selectedImages.forEach((file) => {
-        formData.append("media", file);
+        formData.append("media_files", file);
       });
 
       const response = await adminAPI.uploadAlbumMedia(albumId, formData);
