@@ -1,8 +1,8 @@
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
-const Home = lazy(() => import ("./pages/Home"));
-const Gallery = lazy(() => import ("./pages/Gallery"));
+const Home = lazy(() => import("./pages/Home"));
+const Gallery = lazy(() => import("./pages/Gallery"));
 const About = lazy(() => import("./pages/About"));
 const Testimonials = lazy(() => import("./pages/Testimonials"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -24,6 +24,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
 import { Toaster } from "react-hot-toast";
+import ScrollToTop from "./components/ScrollToTop";
+import Loading from "./utils/Loading";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,81 +39,87 @@ const queryClient = new QueryClient({
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/gallery" element={<Gallery />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/testimonials" element={<Testimonials />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/album/:slug" element={<AlbumDetail />} />
-            <Route path="/order" element={<OrderForm />} />
-          </Route>
-          {/* Admin Routes */}
-          <Route path="/admin/setup" element={<AdminSetup />} />
-          <Route
-            path="/admin/verify-email/:token"
-            element={<EmailVerification />}
-          />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="home" element={<AdminHomeSettings />} />
-            <Route path="albums" element={<AlbumsAdmin />} />
-            <Route path="albums/:id/media" element={<MediaAdmin />} />
-            <Route path="testimonials" element={<TestimonialsAdmin />} />
-            <Route path="inquiries" element={<InquiriesAdmin />} />
-            <Route path="settings" element={<GeneralSettings />} />
-          </Route>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Suspense fallback={<Loading />}>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/gallery" element={<Gallery />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/testimonials" element={<Testimonials />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/album/:slug" element={<AlbumDetail />} />
+                <Route path="/order" element={<OrderForm />} />
+              </Route>
+              {/* Admin Routes */}
+              <Route path="/admin/setup" element={<AdminSetup />} />
+              <Route
+                path="/admin/verify-email/:token"
+                element={<EmailVerification />}
+              />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="home" element={<AdminHomeSettings />} />
+                <Route path="albums" element={<AlbumsAdmin />} />
+                <Route path="albums/:id/media" element={<MediaAdmin />} />
+                <Route path="testimonials" element={<TestimonialsAdmin />} />
+                <Route path="inquiries" element={<InquiriesAdmin />} />
+                <Route path="settings" element={<GeneralSettings />} />
+              </Route>
 
-          {/* 404 Page */}
-          <Route
-            path="*"
-            element={
-              <Layout>
-                <div className="min-h-screen bg-beige flex items-center justify-center">
-                  <div className="text-center">
-                    <h1 className="text-6xl font-bold text-purple mb-4">404</h1>
-                    <h2 className="text-2xl font-semibold text-gray-700 mb-4">
-                      الصفحة غير موجودة
-                    </h2>
-                    <p className="text-gray-600 mb-8">
-                      عذراً، الصفحة التي تبحث عنها غير موجودة
-                    </p>
-                    <button
-                      onClick={() => (window.location.href = "/")}
-                      className="bg-purple text-white px-6 py-3 rounded-lg hover:bg-purple-hover transition-colors"
-                    >
-                      العودة للرئيسية
-                    </button>
-                  </div>
-                </div>
-              </Layout>
-            }
+              {/* 404 Page */}
+              <Route
+                path="*"
+                element={
+                  <Layout>
+                    <div className="min-h-screen bg-beige flex items-center justify-center">
+                      <div className="text-center">
+                        <h1 className="text-6xl font-bold text-purple mb-4">
+                          404
+                        </h1>
+                        <h2 className="text-2xl font-semibold text-gray-700 mb-4">
+                          الصفحة غير موجودة
+                        </h2>
+                        <p className="text-gray-600 mb-8">
+                          عذراً، الصفحة التي تبحث عنها غير موجودة
+                        </p>
+                        <button
+                          onClick={() => (window.location.href = "/")}
+                          className="bg-purple text-white px-6 py-3 rounded-lg hover:bg-purple-hover transition-colors"
+                        >
+                          العودة للرئيسية
+                        </button>
+                      </div>
+                    </div>
+                  </Layout>
+                }
+              />
+            </Routes>
+          </Suspense>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                fontFamily: "Cairo",
+                direction: "rtl",
+              },
+            }}
           />
-        </Routes>
-
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              fontFamily: "Cairo",
-              direction: "rtl",
-            },
-          }}
-        />
-      </BrowserRouter>
-    </QueryClientProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
