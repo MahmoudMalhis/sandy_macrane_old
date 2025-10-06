@@ -27,6 +27,7 @@ export default function PageHero({
               src={backgroundImage}
               alt={title}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
           </div>
           {overlay && (

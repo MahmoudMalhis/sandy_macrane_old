@@ -263,6 +263,7 @@ const ReviewForm = ({
                     src={linkedAlbum.cover_image}
                     alt={linkedAlbum.title}
                     className="w-16 h-16 rounded-lg object-cover"
+                    loading="lazy"
                   />
                 )}
                 <div>
@@ -362,6 +363,7 @@ const ReviewForm = ({
                   src={imagePreview}
                   alt="معاينة"
                   className="w-full h-48 object-cover rounded-lg"
+                  loading="lazy"
                 />
                 <button
                   type="button"
@@ -402,6 +404,7 @@ const ReviewForm = ({
                         src={albumPreview.cover_image}
                         alt={albumPreview.title}
                         className="w-16 h-16 rounded-lg object-cover"
+                        loading="lazy"
                       />
                     )}
                     <div>

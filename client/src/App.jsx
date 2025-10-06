@@ -1,28 +1,29 @@
+import { lazy } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
-import Home from "./pages/Home";
-import Gallery from "./pages/Gallery";
-import About from "./pages/About";
-import Testimonials from "./pages/Testimonials";
-import Contact from "./pages/Contact";
-import FAQ from "./pages/FAQ";
-import AlbumDetail from "./pages/AlbumDetail";
+const Home = lazy(() => import ("./pages/Home"));
+const Gallery = lazy(() => import ("./pages/Gallery"));
+const About = lazy(() => import("./pages/About"));
+const Testimonials = lazy(() => import("./pages/Testimonials"));
+const Contact = lazy(() => import("./pages/Contact"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const AlbumDetail = lazy(() => import("./pages/AlbumDetail"));
+const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminSetup = lazy(() => import("./pages/admin/Setup"));
+const EmailVerification = lazy(() => import("./pages/admin/EmailVerification"));
+const AdminHomeSettings = lazy(() => import("./pages/admin/AdminHomeSettings"));
+const AlbumsAdmin = lazy(() => import("./pages/admin/AlbumsAdmin"));
+const TestimonialsAdmin = lazy(() => import("./pages/admin/TestimonialsAdmin"));
+const InquiriesAdmin = lazy(() => import("./pages/admin/InquiriesAdmin"));
+const GeneralSettings = lazy(() => import("./pages/admin/GeneralSettings"));
+const MediaAdmin = lazy(() => import("./pages/admin/MediaAdmin"));
+const AdminLogin = lazy(() => import("./pages/admin/Login"));
 import "./App.css";
 import OrderForm from "./forms/OrderForm";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
-import AdminLogin from "./pages/admin/Login";
 import AdminLayout from "./components/admin/AdminLayout";
-import Dashboard from "./pages/admin/Dashboard";
 import { Toaster } from "react-hot-toast";
-import AdminSetup from "./pages/admin/Setup";
-import EmailVerification from "./pages/admin/EmailVerification";
-import AdminHomeSettings from "./pages/admin/AdminHomeSettings";
-import AlbumsAdmin from "./pages/admin/AlbumsAdmin";
-import TestimonialsAdmin from "./pages/admin/TestimonialsAdmin";
-import InquiriesAdmin from "./pages/admin/InquiriesAdmin";
-import GeneralSettings from "./pages/admin/GeneralSettings";
-import MediaAdmin from "./pages/admin/MediaAdmin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,7 +39,6 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          {/* Public Routes */}
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/gallery" element={<Gallery />} />

@@ -98,6 +98,7 @@ export default function AboutSettings({ data, onSave, saving, onImageUpload }) {
                     src={watch("about_image")}
                     alt="معاينة"
                     className="w-full h-48 object-cover rounded-lg"
+                    loading="lazy"
                   />
                 </div>
               )}

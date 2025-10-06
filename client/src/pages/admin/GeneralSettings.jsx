@@ -578,6 +578,7 @@ const BrandingSettings = ({ register, errors, watch, onLogoUpload }) => (
                 src={watch("branding_logo_url")}
                 alt="لوجو الموقع"
                 className="w-24 h-24 mx-auto rounded-full border-4 border-gray-200 object-cover"
+                loading="lazy"
               />
               <p className="text-sm text-gray-600 mt-2">اللوجو الحالي</p>
             </div>

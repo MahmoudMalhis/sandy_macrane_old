@@ -120,6 +120,7 @@ export default function SliderSettings({
                       src={watch("macrame_image")}
                       alt="معاينة"
                       className="w-full h-32 object-cover rounded-lg"
+                      loading="lazy"
                     />
                   </div>
                 )}
@@ -207,6 +208,7 @@ export default function SliderSettings({
                       src={watch("frames_image")}
                       alt="معاينة"
                       className="w-full h-32 object-cover rounded-lg"
+                      loading="lazy"
                     />
                   </div>
                 )}

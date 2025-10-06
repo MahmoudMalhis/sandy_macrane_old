@@ -232,10 +232,7 @@ export default function AlbumDetail() {
                       alt={validMedia[selectedImageIndex]?.alt || album.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       onClick={() => handleImageClick(selectedImageIndex)}
-                      onError={(e) => {
-                        handleImageError(e.target.src, selectedImageIndex);
-                        e.target.src = "/images/placeholder.jpg";
-                      }}
+                      loading="lazy"
                     />
                   </div>
                 </div>
@@ -265,10 +262,7 @@ export default function AlbumDetail() {
                             src={media.url}
                             alt={media.alt || album.title}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              console.warn("Image failed to load:", media.url);
-                              e.target.src = "/images/placeholder.jpg";
-                            }}
+loading="lazy"
                           />
                         </button>
                       );
@@ -346,6 +340,7 @@ export default function AlbumDetail() {
                     src="/logo.jpg"
                     alt="ساندي"
                     className="w-10 h-10 rounded-full border-2 border-white"
+                    loading="lazy"
                   />
                   <div>
                     <p className="font-semibold">ساندي</p>
@@ -453,6 +448,7 @@ export default function AlbumDetail() {
                           src={review.attached_image}
                           alt="صورة التقييم"
                           className="w-24 h-24 object-cover rounded-lg"
+                          loading="lazy"
                         />
                       </div>
                     )}
@@ -486,11 +482,11 @@ export default function AlbumDetail() {
                     <img
                       src={
                         relatedAlbum.cover_image ||
-                        relatedAlbum.cover_media?.url ||
-                        "/images/placeholder.jpg"
+                        relatedAlbum.cover_media?.url
                       }
                       alt={relatedAlbum.title}
                       className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
                     />
                   </div>
                   <div className="p-4">

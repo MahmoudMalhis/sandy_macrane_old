@@ -560,6 +560,7 @@ const toggleStatus = async (albumId) => {
                           className="h-12 w-12 rounded-lg object-cover"
                           src={album.cover_image || "/images/placeholder.jpg"}
                           alt={album.title}
+                          loading="lazy"
                         />
                       </div>
                       <div className="mr-3">
@@ -825,6 +826,7 @@ const toggleStatus = async (albumId) => {
                                     src={preview.url}
                                     alt={preview.name}
                                     className="w-full h-20 object-cover rounded-lg"
+                                    loading="lazy"
                                   />
                                   <button
                                     type="button"

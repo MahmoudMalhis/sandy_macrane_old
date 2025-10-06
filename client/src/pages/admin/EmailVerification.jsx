@@ -80,6 +80,7 @@ export default function EmailVerification() {
           src="/logo.jpg"
           alt="Sandy Macrame"
           className="h-20 w-20 rounded-full mx-auto mb-6"
+          loading="lazy"
         />
 
         {status === "loading" && (

@@ -124,6 +124,7 @@ const ImageField = ({
               src={currentImage}
               alt="معاينة"
               className="w-full h-48 object-cover rounded-lg"
+              loading="lazy"
             />
           </div>
         )}

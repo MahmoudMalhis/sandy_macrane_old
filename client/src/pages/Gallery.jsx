@@ -284,9 +284,8 @@ export default function Gallery() {
                     <img
                       src={
                         album.cover_image ||
-                        album.cover_media?.url ||
-                        "/images/placeholder.jpg"
-                      }
+                        album.cover_media?.url
+                                            }
                       alt={album.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 cursor-pointer"
                       loading="lazy"

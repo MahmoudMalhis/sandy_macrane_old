@@ -428,6 +428,7 @@ export default function Testimonials() {
                                 src={testimonial.album_cover}
                                 alt={testimonial.album_title}
                                 className="w-10 h-10 rounded object-cover"
+                                loading="lazy"
                               />
                             )}
                             <div className="flex-1">

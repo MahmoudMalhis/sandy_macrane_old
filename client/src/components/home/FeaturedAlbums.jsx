@@ -150,9 +150,6 @@ export default function FeaturedAlbums({ albums = [], settings }) {
                     alt={album.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     loading="lazy"
-                    onError={(e) => {
-                      e.target.src = "/images/default-album.jpg";
-                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-300"></div>
                   <div className="absolute top-4 right-4 flex gap-2">

@@ -227,6 +227,7 @@ export default function About() {
                   src={aboutData?.image || "/images/sandy-portrait.jpg"}
                   alt="ساندي - فنانة المكرمية"
                   className="w-full h-96 lg:h-[500px] object-cover rounded-2xl shadow-2xl"
+                  loading="lazy"
                 />
 
                 {/* إطار تزييني */}
@@ -249,6 +250,7 @@ export default function About() {
                     src="/logo.jpg"
                     alt="لوجو ساندي"
                     className="w-12 h-12 rounded-full"
+                    loading="lazy"
                   />
                   <div>
                     <h3 className="font-bold text-purple">ساندي</h3>
@@ -327,6 +329,7 @@ export default function About() {
                       src="/logo.jpg"
                       alt="ساندي"
                       className="w-12 h-12 rounded-full border-2 border-purple"
+                      loading="lazy"
                     />
                     <div>
                       <p className="font-bold text-beige">
@@ -524,6 +527,7 @@ export default function About() {
                     src={image.src}
                     alt={image.alt}
                     className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-80 transition-opacity duration-300"></div>
                   <div className="absolute bottom-4 left-4 right-4 text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">

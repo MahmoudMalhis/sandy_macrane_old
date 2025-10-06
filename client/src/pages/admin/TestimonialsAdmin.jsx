@@ -340,6 +340,7 @@ const TestimonialsAdmin = () => {
                 alt="تقييم"
                 className="w-12 h-12 rounded-lg object-cover cursor-pointer"
                 onClick={() => showDetails(testimonial)}
+                loading="lazy"
               />
             )}
             <div>
@@ -672,6 +673,7 @@ const TestimonialsAdmin = () => {
                                 src={testimonial.attached_image}
                                 alt="تقييم"
                                 onClick={() => showDetails(testimonial)}
+                                loading="lazy"
                               />
                             </div>
                           )}
@@ -900,6 +902,7 @@ const TestimonialsAdmin = () => {
                           src={selectedTestimonial.attached_image}
                           alt="صورة التقييم"
                           className="w-full max-w-md mx-auto rounded-lg shadow-md"
+                          loading="lazy"
                         />
                       </div>
                     </div>

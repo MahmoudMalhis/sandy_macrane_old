@@ -259,6 +259,7 @@ const Lightbox = () => {
                     src={image.url}
                     alt={`صورة مصغرة ${index + 1}`}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 </button>
               ))}

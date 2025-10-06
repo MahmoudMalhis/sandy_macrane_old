@@ -1,4 +1,3 @@
-// client/src/api/admin.js - مُحدث للاتصال بالباك إند
 import { apiClient } from "./config.js";
 
 export const adminAPI = {
@@ -9,20 +8,58 @@ export const adminAPI = {
   getAlbums: (params) => apiClient.get("/albums/admin", { params }),
   getAlbumById: (id) => apiClient.get(`/albums/admin/${id}`),
   createAlbum: (data) => apiClient.post("/albums/admin", data),
-  updateAlbum: (id, data) => apiClient.put(`/albums/admin/${id}`, data),
   deleteAlbum: (id) => apiClient.delete(`/albums/admin/${id}`),
   getAlbumsStats: () => apiClient.get("/albums/admin/stats"),
+
+  /**
+   * تحديث بيانات الألبوم - مُصحح
+   */
+  updateAlbum: (albumId, data) =>
+    apiClient.put(`/albums/admin/${albumId}`, data),
 
   // Media Management
   uploadMedia: (albumId, formData) =>
     apiClient.post(`/media/album/${albumId}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+
+  /**
+   * رفع صور للألبوم - دالة مُضافة
+   */
+  uploadAlbumMedia: (albumId, formData) =>
+    apiClient.post(`/media/album/${albumId}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+
   getAlbumMedia: (albumId) => apiClient.get(`/media/album/${albumId}`),
-  updateMedia: (id, data) => apiClient.put(`/media/${id}`, data),
-  deleteMedia: (id) => apiClient.delete(`/media/${id}`),
-  reorderMedia: (albumId, mediaIds) =>
-    apiClient.post(`/media/album/${albumId}/reorder`, { mediaIds }),
+
+  /**
+   * تحديث وسائط محددة - مُصحح
+   */
+  updateMedia: (mediaId, data) =>
+    apiClient.put(`/media/admin/${mediaId}`, data),
+
+  /**
+   * حذف وسائط متعددة - مُصحح
+   */
+  deleteMedia: (mediaIds) =>
+    apiClient.delete("/media/admin/bulk-delete", {
+      data: { mediaIds },
+    }),
+
+  /**
+   * إعادة ترتيب الوسائط في الألبوم - مُصحح
+   */
+  reorderMedia: (albumId, reorderData) =>
+    apiClient.post(`/albums/admin/${albumId}/media/reorder`, {
+      media: reorderData,
+    }),
+
+  /**
+   * تعيين صورة كغلاف للألبوم - مُصحح
+   */
+  setCoverImage: (albumId, mediaId) =>
+    apiClient.post(`/albums/admin/${albumId}/cover`, { mediaId }),
 
   // Reviews Management
   getReviews: (params) => apiClient.get("/reviews/admin", { params }),

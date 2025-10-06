@@ -216,6 +216,7 @@ export const FloatingWhatsApp = ({
                         src="/logo.jpg"
                         alt="Sandy Macrame"
                         className="w-12 h-12 rounded-full border-2 border-white"
+                        loading="lazy"
                       />
                       <div
                         className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${

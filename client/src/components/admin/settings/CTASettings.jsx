@@ -162,6 +162,7 @@ export default function CTASettings({ data, onSave, saving, onImageUpload }) {
                       src={watch("custom_design_image")}
                       alt="معاينة"
                       className="w-full h-48 object-cover rounded-lg"
+                      loading="lazy"
                     />
                   </div>
                 )}
@@ -259,6 +260,7 @@ export default function CTASettings({ data, onSave, saving, onImageUpload }) {
                       src={watch("gallery_image")}
                       alt="معاينة"
                       className="w-full h-48 object-cover rounded-lg"
+                      loading="lazy"
                     />
                   </div>
                 )}

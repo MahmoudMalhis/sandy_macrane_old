@@ -295,6 +295,7 @@ ${
                     }
                     alt={selectedAlbum.title}
                     className="w-16 h-16 rounded-lg object-cover"
+                    loading="lazy"
                   />
                   <div>
                     <h3 className="font-semibold text-purple">
@@ -531,6 +532,7 @@ ${
                               src={image.url}
                               alt={image.name}
                               className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                              loading="lazy"
                             />
                             <button
                               type="button"

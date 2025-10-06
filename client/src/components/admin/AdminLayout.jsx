@@ -52,6 +52,7 @@ export default function AdminLayout() {
                 src="/logo.jpg"
                 alt="Sandy Macrame"
                 className="h-10 w-10 rounded-full"
+                loading="lazy"
               />
               <h2 className="font-bold text-purple">لوحة التحكم</h2>
             </div>
