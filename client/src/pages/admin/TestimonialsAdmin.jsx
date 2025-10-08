@@ -26,6 +26,7 @@ import { toast } from "react-hot-toast";
 import Badge from "../../components/common/Badge";
 import Loading from "../../utils/LoadingSettings";
 import { reviewsAPI } from "../../api/reviews";
+import { confirmDelete } from "../../components/ConfirmToast";
 
 const TestimonialsAdmin = () => {
   const [testimonials, setTestimonials] = useState([]);
@@ -154,35 +155,15 @@ const TestimonialsAdmin = () => {
 
   // حذف التقييم
   const deleteTestimonial = async (testimonialId) => {
-    if (!confirm("هل أنت متأكد من حذف هذا التقييم؟")) return;
-
-    try {
-      const response = await reviewsAPI.delete(testimonialId);
-
-      if (response.success) {
-        // إزالة التقييم من القائمة المحلية
-        setTestimonials((prevTestimonials) =>
-          prevTestimonials.filter((t) => t.id !== testimonialId)
-        );
-
-        // تحديث الإحصائيات
-        await fetchStats();
-
-        toast.success("تم حذف التقييم بنجاح!");
-
-        // إعادة جلب البيانات إذا كانت الصفحة فارغة
-        if (testimonials.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        } else {
-          fetchTestimonials(currentPage);
-        }
-      } else {
+    confirmDelete("هذا التقييم", async () => {
+      try {
+        await reviewsAPI.delete(testimonialId);
+        fetchTestimonials();
+        toast.success("تم حذف التقييم بنجاح");
+      } catch (error) {
         toast.error("فشل في حذف التقييم");
       }
-    } catch (error) {
-      console.error("Error deleting testimonial:", error);
-      toast.error("حدث خطأ في حذف التقييم");
-    }
+    });
   };
 
   // عرض تفاصيل التقييم

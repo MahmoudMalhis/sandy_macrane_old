@@ -5,10 +5,12 @@ import { motion } from "framer-motion";
 import { Eye, Heart, ArrowLeft } from "lucide-react";
 import Badge from "../common/Badge";
 import ApplyNow from "../ApplyNow";
+import { useNavigate } from "react-router-dom";
 
 export default function FeaturedAlbums({ albums = [], settings }) {
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredAlbum, setHoveredAlbum] = useState(null);
+  const navigation = useNavigate();
 
   const defaultSettings = {
     section_title: "منتجاتنا المميزة",
@@ -229,10 +231,11 @@ export default function FeaturedAlbums({ albums = [], settings }) {
           <button
             className="bg-purple text-white px-8 py-4 rounded-full hover:bg-purple-hover transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-3 mx-auto cursor-pointer"
             onClick={() => {
-              console.log("View all albums");
+              navigation("/album");
             }}
           >
             <span className="font-bold">{albumsSettings.button_text}</span>
+            عرض الالبومات
             <ArrowLeft size={20} />
           </button>
         </motion.div>

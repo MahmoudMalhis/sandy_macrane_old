@@ -308,9 +308,6 @@ export const update = ReviewsController.update;
 export const changeStatus = ReviewsController.changeStatus; // إضافة هذا السطر
 export const getFeatured = ReviewsController.getFeatured;
 export const getStats = ReviewsController.getStats;
-
-// Export delete with alternative name
-export { ReviewsController as delete };
-export const deleteReview = ReviewsController.delete;
+export const deleteReview = ReviewsController.delete.bind(ReviewsController);
 
 export default ReviewsController;

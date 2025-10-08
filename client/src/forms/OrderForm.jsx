@@ -8,8 +8,7 @@ import {
   Phone,
   Mail,
   User,
-  MessageSquare,
-  Image as ImageIcon,
+  Image,
   Trash2,
   Send,
   CheckCircle,
@@ -18,6 +17,7 @@ import {
 import { toast } from "react-hot-toast";
 import Button from "../components/common/Button";
 import useAppStore from "../store/useAppStore";
+import { inquiriesAPI } from "../api/inquiries"; // ✅ استيراد API
 
 export default function OrderForm() {
   const { isOrderFormOpen, selectedAlbum, closeOrderForm } = useAppStore();
@@ -33,7 +33,6 @@ export default function OrderForm() {
       document.body.style.overflow = "";
     }
 
-    // تنظيف عند إلغاء المكون
     return () => {
       document.body.style.overflow = "";
     };
@@ -55,7 +54,6 @@ export default function OrderForm() {
 
     if (files.length === 0) return;
 
-    // فحص عدد الصور (حد أقصى 5)
     if (uploadedImages.length + files.length > 5) {
       toast.error("يمكن رفع حد أقصى 5 صور");
       return;
@@ -67,19 +65,16 @@ export default function OrderForm() {
       const newImages = [];
 
       for (const file of files) {
-        // فحص نوع الملف
         if (!file.type.startsWith("image/")) {
           toast.error(`${file.name} ليس ملف صورة صحيح`);
           continue;
         }
 
-        // فحص حجم الملف (حد أقصى 5MB)
         if (file.size > 5 * 1024 * 1024) {
           toast.error(`${file.name} كبير جداً (حد أقصى 5MB)`);
           continue;
         }
 
-        // إنشاء preview للصورة
         const imageUrl = URL.createObjectURL(file);
         newImages.push({
           id: Date.now() + Math.random(),
@@ -111,88 +106,59 @@ export default function OrderForm() {
     });
   };
 
-  // إرسال النموذج
+  // ✅ إرسال النموذج - المُحدّث
   const onSubmit = async (data) => {
     setSending(true);
 
     try {
-      // محاكاة رفع الصور لخدمة خارجية (Cloudinary مثلاً)
-      let imageUrls = [];
+      // تحضير البيانات للإرسال
+      const inquiryData = {
+        customer_name: data.name,
+        phone_whatsapp: data.whatsapp,
+        email: data.email || null,
+        product_type: data.productType,
+        album_id: selectedAlbum?.id || null,
+        notes: `
+          المقاسات المطلوبة: ${data.dimensions || "غير محدد"}
+          الألوان المفضلة: ${data.colors || "غير محدد"}
 
-      if (uploadedImages.length > 0) {
-        // هنا يجب تطبيق رفع حقيقي لخدمة الصور
-        // للمحاكاة، سنستخدم URL.createObjectURL
-        imageUrls = uploadedImages.map((img) => img.url);
-      }
-
-      // إنشاء رسالة واتساب
-      const whatsappMessage = `مرحباً ساندي،
-
-تم إرسال طلب جديد عبر موقعك:
-
-👤 الاسم: ${data.name}
-📱 واتساب: ${data.whatsapp}
-📧 البريد: ${data.email || "غير محدد"}
-🎨 نوع المنتج: ${getProductTypeText(data.productType)}
-${selectedAlbum ? `📁 الألبوم المرجعي: ${selectedAlbum.title}` : ""}
-📏 المقاسات المطلوبة: ${data.dimensions || "غير محدد"}
-🎨 الألوان المفضلة: ${data.colors || "غير محدد"}
-
-📝 وصف الطلب:
-${data.description}
-
-${
-  uploadedImages.length > 0
-    ? `🖼️ عدد الصور المرفقة: ${uploadedImages.length}`
-    : ""
-}
-
----
-تم الإرسال عبر موقع ساندي مكرمية`;
-
-      // فتح واتساب مع الرسالة
-      const whatsappURL = `https://wa.me/970599123456?text=${encodeURIComponent(
-        whatsappMessage
-      )}`;
-      window.open(whatsappURL, "_blank");
-
-      // حفظ الطلب محلياً (يمكن إرساله لقاعدة البيانات لاحقاً)
-      const orderData = {
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        customer: {
-          name: data.name,
-          whatsapp: data.whatsapp,
-          email: data.email,
-        },
-        order: {
-          productType: data.productType,
-          selectedAlbum: selectedAlbum,
-          dimensions: data.dimensions,
-          colors: data.colors,
-          description: data.description,
-          images: imageUrls,
-        },
-        status: "sent",
+          وصف الطلب:
+          ${data.description}
+        `.trim(),
+        attached_images: uploadedImages,
       };
 
-      // حفظ في localStorage للمتابعة
-      const existingOrders = JSON.parse(
-        localStorage.getItem("customerOrders") || "[]"
-      );
-      existingOrders.push(orderData);
-      localStorage.setItem("customerOrders", JSON.stringify(existingOrders));
+      // إرسال الطلب إلى الـ API
+      const response = await inquiriesAPI.create(inquiryData);
 
-      setFormSubmitted(true);
-      toast.success("تم إرسال طلبك بنجاح!");
+      if (response.success) {
+        toast.success("تم إرسال طلبك بنجاح!");
+        setFormSubmitted(true);
 
-      // إعادة تعيين النموذج بعد 3 ثوان
-      setTimeout(() => {
-        handleClose();
-      }, 3000);
+        // فتح واتساب (اختياري)
+        if (response.data.whatsappLink) {
+          setTimeout(() => {
+            window.open(response.data.whatsappLink, "_blank");
+          }, 1000);
+        }
+
+        // إغلاق النموذج بعد 3 ثوان
+        setTimeout(() => {
+          handleClose();
+        }, 3000);
+      } else {
+        throw new Error(response.message || "فشل في إرسال الطلب");
+      }
     } catch (error) {
       console.error("Error sending order:", error);
-      toast.error("حدث خطأ في إرسال الطلب، يرجى المحاولة مرة أخرى");
+
+      if (error.response?.status === 400) {
+        toast.error("يرجى التحقق من البيانات المدخلة");
+      } else if (error.response?.status === 500) {
+        toast.error("حدث خطأ في الخادم، يرجى المحاولة لاحقاً");
+      } else {
+        toast.error("حدث خطأ في إرسال الطلب، يرجى المحاولة مرة أخرى");
+      }
     } finally {
       setSending(false);
     }
@@ -208,7 +174,6 @@ ${
   };
 
   const handleClose = () => {
-    // تنظيف الصور المرفوعة
     uploadedImages.forEach((img) => {
       URL.revokeObjectURL(img.url);
     });
@@ -277,103 +242,102 @@ ${
                     <h3 className="font-bold text-green-800 text-lg">
                       تم إرسال طلبك بنجاح!
                     </h3>
-                    <p className="text-green-700">
-                      تم فتح واتساب لإكمال التواصل. سنرد عليك في أقرب وقت ممكن.
+                    <p className="text-green-700 mt-1">
+                      سنتواصل معك قريباً عبر واتساب
                     </p>
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* الألبوم المحدد */}
-            {selectedAlbum && (
-              <div className="bg-purple bg-opacity-10 border border-purple border-opacity-20 rounded-lg p-4 mb-6">
+            {/* معلومات الألبوم المختار */}
+            {selectedAlbum && !formSubmitted && (
+              <div className="bg-purple bg-opacity-10 border border-purple border-opacity-30 rounded-lg p-4 mb-6">
                 <div className="flex items-center gap-4">
-                  <img
-                    src={
-                      selectedAlbum.cover_image || selectedAlbum.media?.[0]?.url
-                    }
-                    alt={selectedAlbum.title}
-                    className="w-16 h-16 rounded-lg object-cover"
-                    loading="lazy"
-                  />
+                  {selectedAlbum.cover_image && (
+                    <img
+                      src={selectedAlbum.cover_image}
+                      alt={selectedAlbum.title}
+                      className="w-20 h-20 object-cover rounded-lg"
+                    />
+                  )}
                   <div>
-                    <h3 className="font-semibold text-purple">
-                      الألبوم المرجعي:
-                    </h3>
-                    <p className="text-gray-700">{selectedAlbum.title}</p>
-                    <p className="text-sm text-gray-600">
-                      {selectedAlbum.description}
+                    <p className="text-sm text-gray-600 mb-1">
+                      المنتج المرجعي:
                     </p>
+                    <h3 className="font-bold text-purple">
+                      {selectedAlbum.title}
+                    </h3>
                   </div>
                 </div>
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* معلومات التواصل */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
-                  معلومات التواصل
-                </h3>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      الاسم الكامل *
-                    </label>
-                    <div className="relative">
-                      <User
-                        className="absolute right-3 top-3 text-gray-400"
-                        size={20}
-                      />
-                      <input
-                        {...register("name", {
-                          required: "الاسم مطلوب",
-                          minLength: { value: 2, message: "الاسم قصير جداً" },
-                        })}
-                        type="text"
-                        className="w-full pr-12 pl-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                        placeholder="اسمك الكامل"
-                      />
-                    </div>
-                    {errors.name && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.name.message}
-                      </p>
-                    )}
+            {/* النموذج */}
+            {!formSubmitted && (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {/* الاسم */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    الاسم الكامل <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <User
+                      className="absolute right-3 top-3 text-gray-400"
+                      size={20}
+                    />
+                    <input
+                      {...register("name", {
+                        required: "الاسم مطلوب",
+                        minLength: {
+                          value: 3,
+                          message: "الاسم يجب أن يكون 3 أحرف على الأقل",
+                        },
+                      })}
+                      type="text"
+                      className="w-full pr-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
+                      placeholder="أدخل اسمك الكامل"
+                    />
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      رقم واتساب *
-                    </label>
-                    <div className="relative">
-                      <Phone
-                        className="absolute right-3 top-3 text-gray-400"
-                        size={20}
-                      />
-                      <input
-                        {...register("whatsapp", {
-                          required: "رقم واتساب مطلوب",
-                          pattern: {
-                            value: /^[0-9+]+$/,
-                            message: "رقم غير صحيح",
-                          },
-                        })}
-                        type="tel"
-                        className="w-full pr-12 pl-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                        placeholder="970599123456"
-                      />
-                    </div>
-                    {errors.whatsapp && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.whatsapp.message}
-                      </p>
-                    )}
-                  </div>
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.name.message}
+                    </p>
+                  )}
                 </div>
 
+                {/* رقم الواتساب */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    رقم الواتساب <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Phone
+                      className="absolute right-3 top-3 text-gray-400"
+                      size={20}
+                    />
+                    <input
+                      {...register("whatsapp", {
+                        required: "رقم الواتساب مطلوب",
+                        pattern: {
+                          value: /^[0-9+\s()-]+$/,
+                          message: "رقم الهاتف غير صحيح",
+                        },
+                      })}
+                      type="tel"
+                      className="w-full pr-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
+                      placeholder="+970 599 123 456"
+                      dir="ltr"
+                    />
+                  </div>
+                  {errors.whatsapp && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.whatsapp.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* البريد الإلكتروني */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     البريد الإلكتروني (اختياري)
@@ -386,13 +350,13 @@ ${
                     <input
                       {...register("email", {
                         pattern: {
-                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: "بريد إلكتروني غير صحيح",
+                          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                          message: "البريد الإلكتروني غير صحيح",
                         },
                       })}
                       type="email"
-                      className="w-full pr-12 pl-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                      placeholder="your@email.com"
+                      className="w-full pr-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
+                      placeholder="example@email.com"
                     />
                   </div>
                   {errors.email && (
@@ -401,97 +365,87 @@ ${
                     </p>
                   )}
                 </div>
-              </div>
 
-              {/* تفاصيل الطلب */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
-                  تفاصيل الطلب
-                </h3>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      نوع المنتج *
-                    </label>
-                    <select
-                      {...register("productType", {
-                        required: "نوع المنتج مطلوب",
-                      })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                    >
-                      <option value="">اختر نوع المنتج</option>
-                      <option value="macrame">مكرمية</option>
-                      <option value="frame">برواز</option>
-                      <option value="other">أخرى</option>
-                    </select>
-                    {errors.productType && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.productType.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      المقاسات المطلوبة
-                    </label>
-                    <input
-                      {...register("dimensions")}
-                      type="text"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                      placeholder="مثل: 60سم × 80سم"
-                    />
-                  </div>
-                </div>
-
+                {/* نوع المنتج */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    الألوان المفضلة
+                    نوع المنتج <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register("productType", {
+                      required: "يرجى اختيار نوع المنتج",
+                    })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
+                  >
+                    <option value="">اختر نوع المنتج</option>
+                    <option value="macrame">مكرمية</option>
+                    <option value="frame">برواز</option>
+                    <option value="other">أخرى</option>
+                  </select>
+                  {errors.productType && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.productType.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* المقاسات */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    المقاسات المطلوبة (اختياري)
+                  </label>
+                  <input
+                    {...register("dimensions")}
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
+                    placeholder="مثال: 50 × 70 سم"
+                  />
+                </div>
+
+                {/* الألوان */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    الألوان المفضلة (اختياري)
                   </label>
                   <input
                     {...register("colors")}
                     type="text"
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                    placeholder="مثل: أبيض وذهبي، أو حسب الديكور"
+                    placeholder="مثال: أبيض، بيج، رمادي"
                   />
                 </div>
 
+                {/* وصف الطلب */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    وصف الطلب والملاحظات *
+                    وصف الطلب <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <MessageSquare
-                      className="absolute right-3 top-3 text-gray-400"
-                      size={20}
-                    />
-                    <textarea
-                      {...register("description", {
-                        required: "وصف الطلب مطلوب",
-                        minLength: { value: 10, message: "الوصف قصير جداً" },
-                      })}
-                      rows={4}
-                      className="w-full pr-12 pl-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent resize-none"
-                      placeholder="اكتب تفاصيل ما تريده، أي أفكار خاصة، أو ملاحظات عن المكان الذي ستوضع فيه القطعة..."
-                    />
-                  </div>
+                  <textarea
+                    {...register("description", {
+                      required: "الوصف مطلوب",
+                      minLength: {
+                        value: 10,
+                        message: "الوصف يجب أن يكون 10 أحرف على الأقل",
+                      },
+                    })}
+                    rows={4}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent resize-none"
+                    placeholder="صف المنتج الذي تريده بالتفصيل..."
+                  />
                   {errors.description && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.description.message}
                     </p>
                   )}
                 </div>
-              </div>
 
-              {/* رفع الصور */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
-                  صور مرجعية (اختياري)
-                </h3>
+                {/* رفع الصور */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    صور مرجعية (اختياري - حد أقصى 5 صور)
+                  </label>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-center">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple transition-colors">
                     <input
                       type="file"
                       multiple
@@ -501,110 +455,97 @@ ${
                       id="image-upload"
                       disabled={uploading || uploadedImages.length >= 5}
                     />
-
                     <label
                       htmlFor="image-upload"
-                      className={`cursor-pointer flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 transition-colors ${
+                      className={`cursor-pointer ${
                         uploadedImages.length >= 5
-                          ? "border-gray-300 bg-gray-100 cursor-not-allowed"
-                          : "border-purple border-opacity-50 hover:border-opacity-100 hover:bg-purple hover:bg-opacity-5"
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
                       }`}
                     >
-                      <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                      <p className="text-sm font-medium text-gray-700 mb-1">
-                        {uploadedImages.length >= 5
-                          ? "تم الوصول للحد الأقصى (5 صور)"
-                          : "اضغط لرفع صور أو اسحبها هنا"}
+                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-600 mb-1">
+                        {uploading ? "جاري الرفع..." : "اضغط لرفع الصور"}
                       </p>
                       <p className="text-xs text-gray-500">
-                        PNG, JPG, WEBP حتى 5MB لكل صورة (حد أقصى 5 صور)
+                        PNG, JPG, JPEG - حد أقصى 5MB لكل صورة
                       </p>
                     </label>
                   </div>
 
-                  {/* الصور المرفوعة */}
+                  {/* عرض الصور المرفوعة */}
                   {uploadedImages.length > 0 && (
-                    <div className="mt-4">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {uploadedImages.map((image) => (
-                          <div key={image.id} className="relative group">
-                            <img
-                              src={image.url}
-                              alt={image.name}
-                              className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                              loading="lazy"
-                            />
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                      {uploadedImages.map((image) => (
+                        <div
+                          key={image.id}
+                          className="relative group border rounded-lg overflow-hidden"
+                        >
+                          <img
+                            src={image.url}
+                            alt={image.name}
+                            className="w-full h-32 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-[#0000007a] bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <button
                               type="button"
                               onClick={() => removeImage(image.id)}
-                              className="absolute top-1 left-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={16} />
                             </button>
-                            <div className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
-                              {formatFileSize(image.size)}
-                            </div>
                           </div>
-                        ))}
-                      </div>
-                      <p className="text-sm text-gray-600 mt-2">
-                        {uploadedImages.length} من 5 صور مرفوعة
-                      </p>
-                    </div>
-                  )}
-
-                  {uploading && (
-                    <div className="mt-4 text-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple mx-auto"></div>
-                      <p className="text-sm text-gray-600 mt-2">
-                        جاري رفع الصور...
-                      </p>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 truncate">
+                            {image.name}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* شروط الخصوصية */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="text-orange-500 mt-1" size={20} />
-                  <div className="text-sm text-gray-700">
-                    <p className="font-medium mb-2">ملاحظة مهمة:</p>
-                    <ul className="space-y-1 list-disc list-inside">
-                      <li>
-                        بإرسال هذا الطلب، أنت توافق على تواصلنا معك عبر واتساب
-                        أو الهاتف
-                      </li>
-                      <li>سنقوم بحفظ معلوماتك لمتابعة طلبك فقط</li>
-                      <li>لن نشارك معلوماتك مع أطراف خارجية</li>
-                      <li>يمكنك طلب حذف معلوماتك في أي وقت</li>
-                    </ul>
+                {/* ملاحظة */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="text-orange-500 mt-1" size={20} />
+                    <div className="text-sm text-gray-700">
+                      <p className="font-medium mb-2">ملاحظة مهمة:</p>
+                      <ul className="space-y-1 list-disc list-inside">
+                        <li>
+                          بإرسال هذا الطلب، أنت توافق على تواصلنا معك عبر واتساب
+                          أو الهاتف
+                        </li>
+                        <li>سنقوم بحفظ معلوماتك لمتابعة طلبك فقط</li>
+                        <li>لن نشارك معلوماتك مع أطراف خارجية</li>
+                        <li>يمكنك طلب حذف معلوماتك في أي وقت</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* أزرار النموذج */}
-              <div className="flex gap-4 pt-4">
-                <Button
-                  type="submit"
-                  loading={sending}
-                  disabled={formSubmitted}
-                  className="flex-1"
-                >
-                  <Send size={18} className="ml-2" />
-                  {sending ? "جاري الإرسال..." : "إرسال الطلب"}
-                </Button>
+                {/* أزرار النموذج */}
+                <div className="flex gap-4 pt-4">
+                  <Button
+                    type="submit"
+                    loading={sending}
+                    disabled={formSubmitted}
+                    className="flex-1"
+                  >
+                    <Send size={18} className="ml-2" />
+                    {sending ? "جاري الإرسال..." : "إرسال الطلب"}
+                  </Button>
 
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  disabled={sending}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    disabled={sending}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </motion.div>
       </motion.div>

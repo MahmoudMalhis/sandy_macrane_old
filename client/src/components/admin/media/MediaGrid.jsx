@@ -11,6 +11,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import Button from "../../common/Button";
+import { confirmDelete } from "../../ConfirmToast";
 
 const MediaGrid = ({
   media,
@@ -86,9 +87,13 @@ const MediaGrid = ({
   const handleDeleteSelected = () => {
     if (selectedImages.length === 0) return;
 
-    if (window.confirm(`هل تريد حذف ${selectedImages.length} صورة محددة؟`)) {
-      onMediaDelete(selectedImages);
-    }
+    confirmDelete(
+      "صورة محددة",
+      () => {
+        onMediaDelete(selectedImages);
+      },
+      selectedImages.length
+    );
   };
 
   const handleSetAsCover = async (mediaId) => {

@@ -10,7 +10,7 @@ import {
   getById,
   update,
   changeStatus,
-  delete as deleteReview,
+  deleteReview,
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";

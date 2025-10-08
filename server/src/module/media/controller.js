@@ -263,8 +263,7 @@ export const getAlbumMedia = MediaController.getAlbumMedia;
 export const update = MediaController.update;
 export const reorder = MediaController.reorder;
 export const bulkDelete = MediaController.bulkDelete;
+export const deleteMedia = MediaController.delete.bind(MediaController);
 
-export { MediaController as delete };
-export const deleteMedia = MediaController.delete;
 
 export default MediaController;

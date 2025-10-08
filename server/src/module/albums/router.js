@@ -9,7 +9,7 @@ import {
   getById,
   create,
   update,
-  delete as deleteAlbum,
+  deleteAlbum,
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";

@@ -140,9 +140,6 @@ export default function AboutTeaser({ aboutData }) {
                   alt="ساندي مكرمية"
                   className="w-full h-96 lg:h-[500px] object-cover transform hover:scale-105 transition-transform duration-700"
                   loading="lazy"
-                  onError={(e) => {
-                    e.target.src = "/images/default-about.jpg";
-                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-purple opacity-20"></div>
               </div>

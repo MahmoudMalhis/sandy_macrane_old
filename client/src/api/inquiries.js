@@ -1,16 +1,12 @@
-// client/src/api/inquiries.js - API للطلبات والاستعلامات
 import { apiClient } from "./config.js";
 
 export const inquiriesAPI = {
-  // Public routes - إرسال طلب جديد
   create: (data) => {
     const formData = new FormData();
 
-    // إضافة البيانات الأساسية
     formData.append("customer_name", data.customer_name);
     formData.append("phone_whatsapp", data.phone_whatsapp);
     formData.append("product_type", data.product_type);
-    formData.append("notes", data.notes || "");
 
     if (data.email) {
       formData.append("email", data.email);
@@ -20,11 +16,19 @@ export const inquiriesAPI = {
       formData.append("album_id", data.album_id);
     }
 
-    // إضافة الصور المرفقة
+    if (data.notes) {
+      formData.append("notes", data.notes);
+    }
+
     if (data.attached_images && data.attached_images.length > 0) {
       data.attached_images.forEach((image) => {
         formData.append("images", image.file);
       });
+    }
+
+    console.log("📦 FormData entries:");
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ": ", pair[1]);
     }
 
     return apiClient.post("/inquiries", formData, {
@@ -34,7 +38,6 @@ export const inquiriesAPI = {
     });
   },
 
-  // Admin routes - إدارة الطلبات
   getAll: (params) => apiClient.get("/inquiries/admin", { params }),
   getById: (id) => apiClient.get(`/inquiries/admin/${id}`),
   updateStatus: (id, status, notes = null) =>

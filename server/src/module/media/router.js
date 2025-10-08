@@ -5,7 +5,7 @@ import {
   getAlbumMedia,
   reorder,
   update,
-  delete as deleteMedia,
+  deleteMedia,
   bulkDelete,
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
@@ -41,7 +41,6 @@ const reorderValidation = [
       return true;
     }),
 ];
-
 
 router.use(authGuard);
 

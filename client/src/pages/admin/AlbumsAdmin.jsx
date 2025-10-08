@@ -24,6 +24,7 @@ import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import Loading from "../../utils/LoadingSettings";
 import { adminAPI } from "../../api/admin";
+import { confirmDelete } from "../../components/ConfirmToast";
 
 export default function AlbumsAdmin() {
   const navigate = useNavigate();
@@ -283,28 +284,18 @@ export default function AlbumsAdmin() {
     }
   };
 
-  const handleDeleteAlbum = async (albumId) => {
-    if (
-      !confirm(
-        "هل أنت متأكد من حذف هذا الألبوم؟ سيتم حذف جميع الصور المرتبطة به أيضاً."
-      )
-    )
-      return;
-
-    try {
-      const response = await adminAPI.deleteAlbum(albumId);
-
-      if (response.success) {
-        toast.success("تم حذف الألبوم بنجاح!");
-        fetchAlbums();
-        fetchStats();
-      } else {
-        toast.error(response.message || "فشل في حذف الألبوم");
+  const handleDeleteAlbum = (albumId) => {
+    confirmDelete("هذا الألبوم", async () => {
+      try {
+        const response = await adminAPI.deleteAlbum(albumId);
+        if (response.success) {
+          setAlbums((prev) => prev.filter((album) => album.id !== albumId));
+          toast.success("تم حذف الألبوم بنجاح");
+        }
+      } catch (error) {
+        toast.error("فشل في حذف الألبوم");
       }
-    } catch (error) {
-      console.error("Error deleting album:", error);
-      toast.error("فشل في حذف الألبوم");
-    }
+    });
   };
 
   const toggleStatus = async (albumId) => {

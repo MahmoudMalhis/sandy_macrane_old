@@ -1,9 +1,9 @@
-export function up (knex) {
+export function up(knex) {
   return knex.schema.createTable("inquiries", (table) => {
     table.increments("id").primary();
     table.string("customer_name").notNullable();
     table.string("phone_whatsapp").notNullable();
-    table.enum("product_type", ["macrame", "frame"]).notNullable();
+    table.enum("product_type", ["macrame", "frame", "other"]).notNullable();
     table.integer("album_id").unsigned().nullable();
     table.text("notes").nullable();
     table.enum("source", ["form", "whatsapp", "instagram"]).defaultTo("form");
@@ -26,6 +26,6 @@ export function up (knex) {
   });
 }
 
-export function down (knex) {
+export function down(knex) {
   return knex.schema.dropTable("inquiries");
 }

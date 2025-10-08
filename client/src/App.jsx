@@ -53,7 +53,6 @@ export default function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/faq" element={<FAQ />} />
                 <Route path="/album/:slug" element={<AlbumDetail />} />
-                <Route path="/order" element={<OrderForm />} />
               </Route>
               {/* Admin Routes */}
               <Route path="/admin/setup" element={<AdminSetup />} />
@@ -108,6 +107,8 @@ export default function App() {
               />
             </Routes>
           </Suspense>
+          <OrderForm />
+
           <Toaster
             position="top-center"
             toastOptions={{

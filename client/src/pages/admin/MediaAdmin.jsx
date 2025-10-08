@@ -89,15 +89,34 @@ const MediaAdmin = () => {
   /**
    * معالجة تحديث وسائط
    */
+  /**
+   * معالجة تحديث وسائط
+   * ✅ حل مشكلة ظهور النجمة على صورتين عند تغيير الغلاف
+   */
   const handleMediaUpdate = async (mediaId, updateData) => {
     try {
       const response = await adminAPI.updateMedia(mediaId, updateData);
       if (response.success) {
-        setMedia((prev) =>
-          prev.map((item) =>
-            item.id === mediaId ? { ...item, ...updateData } : item
-          )
-        );
+        // ✅ إذا كان التحديث هو تعيين صورة غلاف جديدة
+        if (updateData.is_cover === true) {
+          setMedia((prev) =>
+            prev.map((item) => ({
+              ...item,
+              // إزالة is_cover من جميع الصور
+              is_cover: false,
+              // ثم تعيينها للصورة الجديدة فقط
+              ...(item.id === mediaId && { is_cover: true }),
+            }))
+          );
+        } else {
+          // ✅ تحديث عادي للصور الأخرى
+          setMedia((prev) =>
+            prev.map((item) =>
+              item.id === mediaId ? { ...item, ...updateData } : item
+            )
+          );
+        }
+
         toast.success("تم تحديث الوسائط بنجاح");
       }
     } catch (error) {

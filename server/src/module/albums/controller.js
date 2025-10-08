@@ -289,9 +289,6 @@ export const create = AlbumsController.create;
 export const update = AlbumsController.update;
 export const getFeatured = AlbumsController.getFeatured;
 export const getStats = AlbumsController.getStats;
-
-// Export delete function with alternative name
-export { AlbumsController as delete };
-export const deleteAlbum = AlbumsController.delete;
+export const deleteAlbum = AlbumsController.delete.bind(AlbumsController);
 
 export default AlbumsController;

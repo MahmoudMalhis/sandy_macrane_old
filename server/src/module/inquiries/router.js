@@ -12,6 +12,7 @@ import {
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";
 import { formLimiter } from "../../middlewares/rateLimiter.js";
+import { upload } from "../../utils/upload.js";
 
 const router = Router();
 
@@ -32,8 +33,8 @@ const createInquiryValidation = [
     .isLength({ max: 20 })
     .withMessage("Phone number must not exceed 20 characters"),
   body("product_type")
-    .isIn(["macrame", "frame"])
-    .withMessage("Product type must be either macrame or frame"),
+    .isIn(["macrame", "frame", "other"])
+    .withMessage("Product type must be either macrame or frame, or other"),
   body("album_id")
     .optional()
     .isInt({ min: 1 })
@@ -80,7 +81,14 @@ const queryValidation = [
 ];
 
 // Public routes
-router.post("/", formLimiter, createInquiryValidation, validate, create);
+router.post(
+  "/",
+  formLimiter,
+  upload.array("images", 5),
+  createInquiryValidation,
+  validate,
+  create
+);
 
 // Admin routes
 router.use("/admin", authGuard);
