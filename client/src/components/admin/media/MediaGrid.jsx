@@ -175,6 +175,7 @@ const MediaGrid = ({
           direction="horizontal"
           isDropDisabled={false}
           isCombineEnabled={false}
+          ignoreContainerClipping={false}
         >
           {(provided, snapshot) => (
             <div
@@ -238,7 +239,7 @@ const MediaGrid = ({
                         )}
                       </button>
 
-                      {item.is_cover && (
+                      {Boolean(item.is_cover) && (
                         <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold z-20 shadow-lg">
                           <Star className="w-3 h-3 inline ml-1" />
                           غلاف

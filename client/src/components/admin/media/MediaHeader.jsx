@@ -70,15 +70,21 @@ const MediaHeader = ({ album, onBackClick, onAlbumUpdate }) => {
 
   return (
     <div className="mb-6">
-      {/* زر العودة */}
-      <Button
-        variant="outline"
-        onClick={onBackClick}
-        className="mb-4 flex items-center"
-      >
-        <ArrowRight className="w-4 h-4 ml-2" />
-        العودة للألبومات
-      </Button>
+      <div className="container mx-auto px-4 mb-6">
+        <div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-2 text-gray-600"
+        >
+          <button
+            onClick={onBackClick}
+            className="flex items-center gap-2 hover:text-purple transition-colors"
+          >
+            <ArrowRight size={20} />
+            <span>العودة للمعرض</span>
+          </button>
+        </div>
+      </div>
 
       {/* عنوان الصفحة */}
       <div className="flex items-center justify-between">

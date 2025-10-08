@@ -127,10 +127,6 @@ const MediaAdmin = () => {
       toast.error("فشل في حفظ الترتيب");
     }
   };
-
-  /**
-   * معالجة تحديث اسم الألبوم
-   */
   const handleAlbumUpdate = async (newTitle) => {
     try {
       const response = await adminAPI.updateAlbum(albumId, { title: newTitle });
