@@ -11,6 +11,7 @@ class AboutPageService {
           "about_values",
           "about_workshop",
           "about_timeline",
+          "about_stats",
           "about_seo",
         ])
         .select("key", "value");
@@ -51,6 +52,30 @@ class AboutPageService {
         about_timeline: result.about_timeline || {
           title: "رحلتنا",
           events: [],
+        },
+        about_stats: result.about_stats || {
+          items: [
+            {
+              number: "500+",
+              label: "عميل سعيد",
+              icon: "users",
+            },
+            {
+              number: "200+",
+              label: "قطعة مصنوعة",
+              icon: "palette",
+            },
+            {
+              number: "4.9",
+              label: "تقييم العملاء",
+              icon: "star",
+            },
+            {
+              number: "3+",
+              label: "سنوات خبرة",
+              icon: "clock",
+            },
+          ],
         },
         about_seo: result.about_seo || {
           title: "من نحن | Sandy Macrame",
@@ -147,9 +172,6 @@ class AboutPageService {
     }
   }
 
-  /**
-   * Update all sections at once
-   */
   static async updateAllSections(sections) {
     try {
       const trx = await db.transaction();
@@ -171,6 +193,20 @@ class AboutPageService {
       }
     } catch (error) {
       throw new Error(`Failed to update all sections: ${error.message}`);
+    }
+  }
+
+  static async updateStatsSection(data) {
+    try {
+      const value = JSON.stringify(data);
+      await db("settings")
+        .insert({ key: "about_stats", value })
+        .onConflict("key")
+        .merge({ value, updated_at: db.fn.now() });
+
+      return { success: true, data };
+    } catch (error) {
+      throw new Error(`Failed to update stats section: ${error.message}`);
     }
   }
 }

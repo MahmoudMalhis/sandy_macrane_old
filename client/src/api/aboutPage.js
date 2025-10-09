@@ -15,11 +15,14 @@ export const aboutPageAPI = {
 
   updateWorkshop: (data) =>
     apiClient.put("/settings/admin/about-page/workshop", data),
-  
+
   updateTimeline: (data) =>
     apiClient.put("/settings/admin/about-page/timeline", data),
 
   updateSEO: (data) => apiClient.put("/settings/admin/about-page/seo", data),
 
   updateAll: (data) => apiClient.put("/settings/admin/about-page/all", data),
+
+  updateStats: (data) =>
+    apiClient.put("/settings/admin/about-page/stats", data),
 };

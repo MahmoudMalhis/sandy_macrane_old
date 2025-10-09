@@ -21,6 +21,7 @@ import {
   updateAboutSEO,
   updateAllAboutSections,
   updateAboutWorkshop,
+  updateAboutStats,
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";
@@ -304,6 +305,13 @@ const aboutSEOValidation = [
   body("keywords").optional().trim(),
 ];
 
+const aboutStatsValidation = [
+  body("items").isArray().withMessage("Items must be an array"),
+  body("items.*.number").trim().notEmpty().withMessage("Number is required"),
+  body("items.*.label").trim().notEmpty().withMessage("Label is required"),
+  body("items.*.icon").optional().trim(),
+];
+
 router.get("/public", getPublic);
 router.use("/admin", authGuard);
 router.get("/admin", getAll);
@@ -393,5 +401,13 @@ router.put(
   authGuard,
   validate,
   updateAllAboutSections
+);
+
+router.put(
+  "/admin/about-page/stats",
+  authGuard,
+  aboutStatsValidation,
+  validate,
+  updateAboutStats
 );
 export default router;

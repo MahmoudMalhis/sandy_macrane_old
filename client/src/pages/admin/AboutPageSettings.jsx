@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import {
-  Save,
   Eye,
   FileText,
   Heart,
-  Users,
   Calendar,
   Search as SearchIcon,
-  Settings,
+  TrendingUp ,
   Camera,
 } from "lucide-react";
 import Button from "../../components/common/Button";
@@ -21,6 +19,7 @@ import AboutValuesSection from "../../components/admin/about/AboutValuesSection"
 import AboutWorkshopSection from "../../components/admin/about/AboutWorkshopSection";
 import AboutTimelineSection from "../../components/admin/about/AboutTimelineSection";
 import AboutSEOSection from "../../components/admin/about/AboutSEOSection";
+import AboutStatsSection from "../../components/admin/about/AboutStatsSection";
 import { adminAPI } from "../../api/admin";
 
 const TabButton = ({ icon, label, active, onClick }) => (
@@ -74,6 +73,9 @@ export default function AboutPageSettings() {
       switch (sectionName) {
         case "hero":
           response = await aboutPageAPI.updateHero(data);
+          break;
+        case "stats":
+          response = await aboutPageAPI.updateStats(data);
           break;
         case "story":
           response = await aboutPageAPI.updateStory(data);
@@ -170,6 +172,12 @@ export default function AboutPageSettings() {
             onClick={() => setActiveTab("hero")}
           />
           <TabButton
+            icon={<TrendingUp className="w-5 h-5" />}
+            label="الإحصائيات"
+            active={activeTab === "stats"}
+            onClick={() => setActiveTab("stats")}
+          />
+          <TabButton
             icon={<FileText className="w-5 h-5" />}
             label="قصتنا"
             active={activeTab === "story"}
@@ -209,6 +217,14 @@ export default function AboutPageSettings() {
               onSave={(data) => saveSection("hero", data)}
               saving={saving}
               onImageUpload={handleImageUpload}
+            />
+          )}
+
+          {activeTab === "stats" && (
+            <AboutStatsSection
+              data={settings?.about_stats}
+              onSave={(data) => saveSection("stats", data)}
+              saving={saving}
             />
           )}
 

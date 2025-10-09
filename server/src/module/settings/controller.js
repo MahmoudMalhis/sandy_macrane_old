@@ -504,6 +504,33 @@ class SettingsController {
       });
     }
   }
+
+  static async updateAboutStats(req, res) {
+    try {
+      const result = await AboutPageService.updateStatsSection(req.body);
+
+      logInfo("About stats section updated", {
+        updatedBy: req.user?.email || "unknown",
+      });
+
+      res.json({
+        success: true,
+        message: "Stats section updated successfully",
+        data: result.data,
+      });
+    } catch (error) {
+      logError("Update about stats failed", {
+        updatedBy: req.user?.email || "unknown",
+        error: error.message,
+      });
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to update stats section",
+      });
+    }
+  }
+
 }
 
 export const getPublic = SettingsController.getPublic;
@@ -526,5 +553,6 @@ export const updateAboutWorkshop = SettingsController.updateAboutWorkshop;
 export const updateAboutTimeline = SettingsController.updateAboutTimeline;
 export const updateAboutSEO = SettingsController.updateAboutSEO;
 export const updateAllAboutSections = SettingsController.updateAllAboutSections;
+export const updateAboutStats = SettingsController.updateAboutStats;
 
 export default SettingsController;

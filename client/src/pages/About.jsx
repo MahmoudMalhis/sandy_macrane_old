@@ -25,12 +25,6 @@ export default function About() {
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [aboutData, setAboutData] = useState(null);
-  const [stats, setStats] = useState([
-    { number: "0", label: "عميل سعيد", icon: Users },
-    { number: "0", label: "قطعة مصنوعة", icon: Palette },
-    { number: "0", label: "تقييم العملاء", icon: Star },
-    { number: "3+", label: "سنوات خبرة", icon: Clock },
-  ]);
 
   useEffect(() => {
     setIsVisible(true);
@@ -40,44 +34,14 @@ export default function About() {
   const loadAboutData = async () => {
     try {
       setLoading(true);
-
-      // Load about settings and stats in parallel
       const [aboutResponse, statsResponse] = await Promise.all([
         aboutPageAPI.getPublic(),
-        adminAPI.getStats().catch(() => null), // Don't fail if stats API fails
+        adminAPI.getStats().catch(() => null),
       ]);
-
       if (aboutResponse?.success) {
         setAboutData(aboutResponse.data || getDefaultAboutData());
       } else {
         setAboutData(getDefaultAboutData());
-      }
-
-      // Update stats if available
-      if (statsResponse?.success) {
-        const apiStats = statsResponse.data;
-        setStats([
-          {
-            number: apiStats.totalCustomers || "500+",
-            label: "عميل سعيد",
-            icon: Users,
-          },
-          {
-            number: apiStats.totalAlbums || "200+",
-            label: "قطعة مصنوعة",
-            icon: Palette,
-          },
-          {
-            number: apiStats.averageRating || "4.9",
-            label: "تقييم العملاء",
-            icon: Star,
-          },
-          {
-            number: "3+",
-            label: "سنوات خبرة",
-            icon: Clock,
-          },
-        ]);
       }
     } catch (error) {
       console.error("Error loading about data:", error);
@@ -88,65 +52,50 @@ export default function About() {
   };
 
   const getDefaultAboutData = () => ({
-    title: "فن المكرمية بلمسة عصرية",
-    subtitle: "رحلة إبداع تبدأ من القلب",
-    description:
-      "نقدم لكم قطع مكرمية مصنوعة يدوياً بشغف وإتقان، كل قطعة تحكي قصة فريدة وتضفي جمالاً خاصاً لمنزلكم.",
-    button_text: "تعرف علينا أكثر",
-    image: "/images/about-hero.jpg",
-    highlights: [
-      { icon: "❤️", title: "صنع بحب", description: "كل قطعة تحمل لمسة شخصية" },
-      { icon: "✨", title: "تصاميم فريدة", description: "إبداعات لا تتكرر" },
-      {
-        icon: "🏆",
-        title: "جودة عالية",
-        description: "مواد خام مختارة بعناية",
-      },
-    ],
-    story: {
-      title: "كيف بدأت الحكاية؟",
-      paragraphs: [
-        "في عام 2020، وسط ظروف الحجر المنزلي، اكتشفت ساندي عالم المكرمية بالصدفة عبر فيديو على الإنترنت. ما بدأ كنشاط لملء وقت الفراغ، تحول تدريجياً إلى شغف حقيقي عندما لاحظت كيف أن هذا الفن القديم يمكن أن يضفي دفئاً وجمالاً لا مثيل له على المساحات الحديثة.",
-        "بدأت بقطع بسيطة لتزيين منزلها، لكن سرعان ما لاحظ الأصدقاء والعائلة جمال أعمالها وبدأوا يطلبون قطعاً مشابهة. هذا التشجيع دفعها لتطوير مهاراتها أكثر وتعلم تقنيات متقدمة من خلال الدورات والممارسة المستمرة.",
-        "اليوم، تفخر ساندي بأنها تمكنت من تحويل شغفها إلى عمل يجلب السعادة لمئات العملاء، وتستمر في الإبداع والتطوير لتقديم قطع فنية فريدة تحمل في طياتها قصة وروحاً خاصة.",
-      ],
-      quote:
-        "كل قطعة أصنعها تحمل جزءاً من روحي، وأتمنى أن تنقل هذا الشعور بالدفء والجمال لكل من يراها",
-      author_name: "ساندي",
-      author_title: "مؤسسة ساندي مكرمية",
+    about_hero: {
+      title: "قصة **ساندي** \\n مع المكرمية",
+      subtitle: "قصة إبداع وشغف",
+      description: "نحن فريق متخصص...",
+      background_image: "",
+      cta_text: "تعرف على قصتنا",
+      cta_link: "#story",
     },
-    milestones: [
-      {
-        year: "2020",
-        title: "البداية",
-        description: "بدأت ساندي رحلتها مع المكرمية كهواية في أوقات الفراغ",
-        icon: "Lightbulb",
-      },
-      {
-        year: "2021",
-        title: "أول مشروع",
-        description:
-          "إنجاز أول قطعة مكرمية مخصصة لصديقة، والتي لاقت إعجاباً كبيراً",
-        icon: "Star",
-      },
-      {
-        year: "2022",
-        title: "التوسع",
-        description: "إضافة البراويز المزينة بالمكرمية وتنويع المنتجات",
-        icon: "Target",
-      },
-      {
-        year: "2023",
-        title: "النجاح",
-        description: "وصول عدد العملاء إلى المئات مع تقييمات ممتازة",
-        icon: "Award",
-      },
-    ],
+    about_stats: {
+      items: [
+        { number: "500+", label: "عميل سعيد", icon: "users" },
+        { number: "200+", label: "قطعة مصنوعة", icon: "palette" },
+        { number: "4.9", label: "تقييم العملاء", icon: "star" },
+        { number: "3+", label: "سنوات خبرة", icon: "clock" },
+      ],
+    },
+    about_story: {
+      title: "قصتنا",
+      content: "",
+      image: "",
+      highlights: [],
+    },
+    about_values: {
+      title: "قيمنا",
+      items: [],
+    },
+    about_workshop: {
+      title: "داخل ورشة العمل",
+      description: "",
+      images: [],
+    },
+    about_timeline: {
+      title: "رحلتنا",
+      events: [],
+    },
+    about_seo: {
+      title: "من نحن | Sandy Macrame",
+      description: "تعرف على قصتنا",
+      keywords: "من نحن، مكرمية",
+    },
   });
 
   const getIconComponent = (iconName) => {
     const iconConfig = {
-      // أيقونات Values
       heart: {
         Icon: Heart,
         color: "text-red-500",
@@ -167,8 +116,6 @@ export default function About() {
         color: "text-purple-500",
         bgColor: "bg-purple-50",
       },
-
-      // أيقونات Timeline الجديدة ⭐
       lightbulb: {
         Icon: Lightbulb,
         color: "text-yellow-400",
@@ -189,8 +136,6 @@ export default function About() {
         color: "text-gray-600",
         bgColor: "bg-gray-50",
       },
-
-      // fallback default
       default: {
         Icon: Heart,
         color: "text-purple-500",
@@ -275,6 +220,7 @@ export default function About() {
         </section>
 
         {/* قسم الإحصائيات */}
+        {/* Stats Section */}
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
             <motion.div
@@ -283,17 +229,23 @@ export default function About() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="grid md:grid-cols-2 lg:grid-cols-4 gap-8"
             >
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center group">
-                  <div className="bg-purple text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-pink transition-colors duration-300">
-                    <stat.icon size={24} />
+              {aboutData?.about_stats?.items?.map((stat, index) => {
+                const { Icon } = getIconComponent(stat.icon);
+
+                return (
+                  <div key={index} className="text-center group">
+                    <div className="bg-purple text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-pink transition-colors duration-300">
+                      <Icon size={24} />
+                    </div>
+                    <div className="text-3xl lg:text-4xl font-bold text-purple mb-2">
+                      {stat.number}
+                    </div>
+                    <div className="text-gray-600 font-medium">
+                      {stat.label}
+                    </div>
                   </div>
-                  <div className="text-3xl lg:text-4xl font-bold text-purple mb-2">
-                    {stat.number}
-                  </div>
-                  <div className="text-gray-600 font-medium">{stat.label}</div>
-                </div>
-              ))}
+                );
+              })}
             </motion.div>
           </div>
         </section>
@@ -379,7 +331,7 @@ export default function About() {
               </motion.div>
 
               <div className="space-y-8">
-                {aboutData?.about_timeline?.events?.map((milestone, index) => {
+                {aboutData?.about_timeline?.events?.map((event, index) => {
                   const { Icon, color, bgColor } = getIconComponent(event.icon);
                   return (
                     <motion.div
@@ -401,24 +353,24 @@ export default function About() {
                           </div>
                           <div>
                             <h3 className="text-xl font-bold text-purple">
-                              {milestone.title}
+                              {event.title}
                             </h3>
                             <p className="text-purple text-sm font-medium">
-                              {milestone.year}
+                              {event.year}
                             </p>
                           </div>
                         </div>
                         <p className="text-gray-700 leading-relaxed">
-                          {milestone.description}
+                          {event.description}
                         </p>
                       </div>
 
                       {/* الخط الزمني */}
                       <div className="flex flex-col items-center">
                         <div className="w-4 h-4 bg-purple rounded-full"></div>
-                        {/* {index < aboutData.milestones.length - 1 && (
-                        <div className="w-0.5 h-16 bg-purple opacity-30 mt-2"></div>
-                      )} */}
+                        {/* {index < aboutData.event.length - 1 && (
+                          <div className="w-0.5 h-16 bg-purple opacity-30 mt-2"></div>
+                        )} */}
                       </div>
 
                       {/* مساحة فارغة للتوازن */}
