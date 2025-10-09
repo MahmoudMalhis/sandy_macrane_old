@@ -18,6 +18,8 @@ const InquiriesAdmin = lazy(() => import("./pages/admin/InquiriesAdmin"));
 const GeneralSettings = lazy(() => import("./pages/admin/GeneralSettings"));
 const MediaAdmin = lazy(() => import("./pages/admin/MediaAdmin"));
 const AdminLogin = lazy(() => import("./pages/admin/Login"));
+const AboutPageSettings = lazy(() => import("./pages/admin/AboutPageSettings"));
+
 import "./App.css";
 import OrderForm from "./forms/OrderForm";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -76,6 +78,7 @@ export default function App() {
                 <Route path="testimonials" element={<TestimonialsAdmin />} />
                 <Route path="inquiries" element={<InquiriesAdmin />} />
                 <Route path="settings" element={<GeneralSettings />} />
+                <Route path="about-page" element={<AboutPageSettings />} />
               </Route>
 
               {/* 404 Page */}

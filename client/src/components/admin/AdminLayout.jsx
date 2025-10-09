@@ -8,9 +8,10 @@ import {
   LogOut,
   Menu,
   X,
-  Users,
   FileText,
-  BarChart3,
+  HelpCircle,
+  LayoutDashboard,
+  Mail,
 } from "lucide-react";
 import useAuthStore from "../../api/useAuthStore";
 
@@ -25,12 +26,46 @@ export default function AdminLayout() {
   };
 
   const menuItems = [
-    { icon: BarChart3, label: "لوحة التحكم", path: "/admin" },
-    { icon: Home, label: "إعدادات الرئيسية", path: "/admin/home" },
-    { icon: Image, label: "الألبومات", path: "/admin/albums" },
-    { icon: MessageSquare, label: "آراء العملاء", path: "/admin/testimonials" },
-    { icon: Users, label: "الطلبات والاستعلامات", path: "/admin/inquiries" },
-    { icon: Settings, label: "الإعدادات العامة", path: "/admin/settings" },
+    {
+      path: "/admin",
+      icon: <LayoutDashboard size={20} />,
+      label: "لوحة التحكم",
+    },
+    {
+      path: "/admin/home",
+      icon: <Home size={20} />,
+      label: "الصفحة الرئيسية",
+    },
+    {
+      path: "/admin/albums",
+      icon: <Image size={20} />,
+      label: "الألبومات",
+    },
+    {
+      path: "/admin/testimonials",
+      icon: <MessageSquare size={20} />,
+      label: "التقييمات",
+    },
+    {
+      path: "/admin/inquiries",
+      icon: <Mail size={20} />,
+      label: "الطلبات والاستفسارات",
+    },
+    {
+      path: "/admin/faq",
+      icon: <HelpCircle size={20} />,
+      label: "الأسئلة الشائعة",
+    },
+    {
+      path: "/admin/about-page",
+      icon: <FileText size={20} />,
+      label: "صفحة من نحن",
+    },
+    {
+      path: "/admin/general",
+      icon: <Settings size={20} />,
+      label: "الإعدادات العامة",
+    },
   ];
 
   return (
@@ -77,7 +112,7 @@ export default function AdminLayout() {
                 }`
               }
             >
-              <item.icon size={20} />
+              {item.icon}
               <span
                 className={`mr-3 ${sidebarOpen ? "block" : "hidden"} md:block`}
               >
@@ -87,7 +122,7 @@ export default function AdminLayout() {
           ))}
         </nav>
 
-        <div className="absolute bottom-4 right-4 left-4">
+        <div className="absolute bottom-4 right-4 left-4 w-fit">
           <button
             onClick={handleLogout}
             className="flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors cupsor-pointer"

@@ -1,4 +1,3 @@
-// server/src/module/settings/router.js - Router محدث مع مسار /admin
 import { Router } from "express";
 import { body } from "express-validator";
 import {
@@ -13,13 +12,21 @@ import {
   updateHomeTestimonials,
   updateHomeWhatsApp,
   updateHomeSections,
+  getAboutPagePublic,
+  getAboutPageAdmin,
+  updateAboutHero,
+  updateAboutStory,
+  updateAboutValues,
+  updateAboutTimeline,
+  updateAboutSEO,
+  updateAllAboutSections,
+  updateAboutWorkshop,
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";
 
 const router = Router();
 
-// Home slider validation
 const homeSliderValidation = [
   body("macrame.title")
     .optional()
@@ -55,7 +62,6 @@ const homeSliderValidation = [
   body("frames.image").optional().trim(),
 ];
 
-// Site metadata validation
 const siteMetaValidation = [
   body("title")
     .optional()
@@ -75,7 +81,6 @@ const siteMetaValidation = [
   body("logo").optional().trim(),
 ];
 
-// About section validation
 const aboutValidation = [
   body("title")
     .optional()
@@ -101,7 +106,6 @@ const aboutValidation = [
   body("highlights").optional().isArray(),
 ];
 
-// CTA section validation
 const ctaValidation = [
   body("section_title")
     .optional()
@@ -155,7 +159,6 @@ const ctaValidation = [
     .withMessage("Gallery button text must not exceed 50 characters"),
 ];
 
-// Albums section validation
 const albumsValidation = [
   body("section_title")
     .optional()
@@ -182,7 +185,6 @@ const albumsValidation = [
     .withMessage("Sort by must be view_count, created_at, or random"),
 ];
 
-// Testimonials section validation
 const testimonialsValidation = [
   body("section_title")
     .optional()
@@ -217,7 +219,6 @@ const testimonialsValidation = [
     .withMessage("Autoplay delay must be between 1000 and 20000 ms"),
 ];
 
-// WhatsApp settings validation
 const whatsappValidation = [
   body("enabled").optional().isBoolean().withMessage("Enabled must be boolean"),
   body("show_after_scroll")
@@ -239,7 +240,6 @@ const whatsappValidation = [
   body("quick_messages").optional().isArray(),
 ];
 
-// Sections visibility validation
 const sectionsValidation = [
   body("*.enabled")
     .optional()
@@ -251,17 +251,63 @@ const sectionsValidation = [
     .withMessage("Section order must be between 0 and 20"),
 ];
 
-// Public routes
+const aboutHeroValidation = [
+  body("title").trim().notEmpty().withMessage("Title is required"),
+  body("subtitle").optional().trim(),
+  body("description").optional().trim(),
+  body("background_image")
+    .optional({ checkFalsy: true })
+    .isURL()
+    .withMessage("Invalid image URL"),
+  body("cta_text").optional().trim(),
+  body("cta_link").optional().trim(),
+];
+
+const aboutStoryValidation = [
+  body("title").trim().notEmpty().withMessage("Title is required"),
+  body("content").trim().notEmpty().withMessage("Content is required"),
+  body("image").optional().isURL().withMessage("Invalid image URL"),
+  body("highlights").optional().isArray(),
+];
+
+const aboutValuesValidation = [
+  body("title").trim().notEmpty().withMessage("Title is required"),
+  body("items").isArray().withMessage("Items must be an array"),
+  body("items.*.title")
+    .trim()
+    .notEmpty()
+    .withMessage("Value title is required"),
+  body("items.*.description").optional().trim(),
+  body("items.*.icon").optional().trim(),
+];
+
+const aboutWorkshopValidation = [
+  body("title").trim().notEmpty().withMessage("Title is required"),
+  body("description").optional().trim(),
+  body("images").optional().isArray(),
+  body("images.*.src").optional().trim(),
+  body("images.*.alt").optional().trim(),
+  body("images.*.title").optional().trim(),
+];
+
+const aboutTimelineValidation = [
+  body("title").trim().notEmpty().withMessage("Title is required"),
+  body("events").optional().isArray(),
+  body("events.*.year").optional().trim(),
+  body("events.*.title").optional().trim(),
+  body("events.*.description").optional().trim(),
+];
+
+const aboutSEOValidation = [
+  body("title").optional().trim(),
+  body("description").optional().trim(),
+  body("keywords").optional().trim(),
+];
+
 router.get("/public", getPublic);
-
-// Admin routes
 router.use("/admin", authGuard);
-
-// GET routes for admin
 router.get("/admin", getAll);
 router.get("/admin/home", getAllHomeSettings);
-
-// PUT routes for admin - home sections
 router.put(
   "/admin/home/slider",
   homeSliderValidation,
@@ -289,8 +335,63 @@ router.put(
   validate,
   updateHomeSections
 );
-
-// Site metadata route
 router.put("/admin/site/meta", siteMetaValidation, validate, updateSiteMeta);
+router.get("/about-page/public", getAboutPagePublic);
 
+router.get("/admin/about-page", authGuard, getAboutPageAdmin);
+
+router.put(
+  "/admin/about-page/hero",
+  authGuard,
+  aboutHeroValidation,
+  validate,
+  updateAboutHero
+);
+
+router.put(
+  "/admin/about-page/story",
+  authGuard,
+  aboutStoryValidation,
+  validate,
+  updateAboutStory
+);
+
+router.put(
+  "/admin/about-page/values",
+  authGuard,
+  aboutValuesValidation,
+  validate,
+  updateAboutValues
+);
+
+router.put(
+  "/admin/about-page/workshop",
+  authGuard,
+  aboutWorkshopValidation,
+  validate,
+  updateAboutWorkshop
+);
+
+router.put(
+  "/admin/about-page/timeline",
+  authGuard,
+  aboutTimelineValidation,
+  validate,
+  updateAboutTimeline
+);
+
+router.put(
+  "/admin/about-page/seo",
+  authGuard,
+  aboutSEOValidation,
+  validate,
+  updateAboutSEO
+);
+
+router.put(
+  "/admin/about-page/all",
+  authGuard,
+  validate,
+  updateAllAboutSections
+);
 export default router;
