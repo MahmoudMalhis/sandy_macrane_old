@@ -2,6 +2,7 @@
 // client/src/pages/About.jsx
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Helmet } from "react-helmet-async";
 import {
   Heart,
   Award,
@@ -19,7 +20,6 @@ import { adminAPI } from "../api/admin";
 import ApplyNow from "../components/ApplyNow";
 import Loading from "../utils/LoadingSettings";
 import { aboutPageAPI } from "../api/aboutPage";
-import { Helmet } from "react-helmet-async";
 
 export default function About() {
   const [isVisible, setIsVisible] = useState(false);
@@ -207,6 +207,11 @@ export default function About() {
 
   return (
     <>
+      <Helmet>
+        <title>{aboutData?.about_seo?.title}</title>
+        <meta name="description" content={aboutData?.about_seo?.description} />
+        <meta name="keywords" content={aboutData?.about_seo?.keywords} />
+      </Helmet>
       <div className="min-h-screen bg-beige">
         {/* قسم البطل */}
         <section className="relative py-20 lg:py-32 overflow-hidden">
@@ -569,17 +574,6 @@ export default function About() {
           </div>
         </section>
       </div>
-      <Helmet>
-        <title>{aboutData?.about_seo?.title || "من نحن | Sandy Macrame"}</title>
-        <meta
-          name="description"
-          content={aboutData?.about_seo?.description || "تعرف على قصتنا"}
-        />
-        <meta
-          name="keywords"
-          content={aboutData?.about_seo?.keywords || "من نحن، مكرمية"}
-        />
-      </Helmet>
     </>
   );
 }
