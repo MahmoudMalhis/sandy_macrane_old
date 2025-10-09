@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-// client/src/pages/AlbumDetail.jsx - محدث للعمل مع API
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -15,12 +13,13 @@ import {
 } from "lucide-react";
 import Badge from "../components/common/Badge";
 import ApplyNow from "../components/ApplyNow";
-import Lightbox from "../components/common/Lightbox";
 import useAppStore from "../store/useAppStore";
 import Loading from "../utils/Loading";
 import { albumsAPI } from "../api/albums";
 import { reviewsAPI } from "../api/reviews";
-import Layout from "../components/layout/Layout";
+import { useLikes } from "../hooks/useLikes";
+import AlbumCard from "../components/common/AlbumCard";
+import { prepareAlbumImages } from "../utils/albumUtils";
 
 export default function AlbumDetail() {
   const { slug } = useParams();
@@ -32,7 +31,10 @@ export default function AlbumDetail() {
   const [relatedAlbums, setRelatedAlbums] = useState([]);
   const [reviews, setReviews] = useState([]);
   const { openLightbox } = useAppStore();
-  const [imageLoadErrors, setImageLoadErrors] = useState(new Set());
+  const { likesCount, isLiked, isLoading, toggleLike } = useLikes(
+    album?.id,
+    album?.likes_count || 0
+  );
 
   useEffect(() => {
     const fetchAlbumData = async () => {
@@ -40,7 +42,6 @@ export default function AlbumDetail() {
         setLoading(true);
         setError(null);
 
-        // جلب بيانات الألبوم
         const albumResponse = await albumsAPI.getBySlug(slug);
         if (!albumResponse.success) {
           throw new Error("Album not found");
@@ -49,7 +50,6 @@ export default function AlbumDetail() {
         const albumData = albumResponse.data;
         setAlbum(albumData);
 
-        // جلب الألبومات المشابهة
         try {
           const relatedResponse = await albumsAPI.getAll({
             category: albumData.category,
@@ -57,7 +57,6 @@ export default function AlbumDetail() {
             page: 1,
           });
           if (relatedResponse.success) {
-            // فلترة الألبوم الحالي من النتائج
             const filtered = relatedResponse.data.filter(
               (item) => item.id !== albumData.id
             );
@@ -67,7 +66,6 @@ export default function AlbumDetail() {
           console.warn("Failed to load related albums:", relatedError);
         }
 
-        // جلب التقييمات للألبوم
         try {
           const reviewsResponse = await reviewsAPI.getAll({
             linked_album_id: albumData.id,
@@ -118,59 +116,61 @@ export default function AlbumDetail() {
 
   const handleWhatsAppContact = () => {
     const message = `مرحباً ساندي، أريد الاستفسار عن: ${album.title}`;
-    const whatsappUrl = `https://wa.me/970599123456?text=${encodeURIComponent(
+    const whatsappUrl = `https:
       message
     )}`;
     window.open(whatsappUrl, "_blank");
   };
 
-  const handleImageError = (imageUrl, index) => {
-    console.warn(`Failed to load image at index ${index}:`, imageUrl);
-    setImageLoadErrors((prev) => new Set(prev).add(index));
+  const handleRelatedAlbumClick = (relatedAlbum) => {
+    if (!relatedAlbum.slug) {
+      console.error("Related album missing slug:", relatedAlbum);
+      return;
+    }
+
+    navigate(`/album/${relatedAlbum.slug}`);
   };
 
-  // معالجة حالات التحميل والأخطاء
+  const handleRelatedImageClick = (relatedAlbum, imageIndex = 0) => {
+    const images = prepareAlbumImages(relatedAlbum);
+    openLightbox(images, imageIndex);
+  };
+
   if (loading) {
     return <Loading />;
   }
 
   if (error || !album) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-beige flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-6xl mb-4">😔</div>
-            <h2 className="text-xl font-bold text-gray-700 mb-2">
-              {error === "Album not found" ? "المنتج غير موجود" : "حدث خطأ"}
-            </h2>
-            <p className="text-gray-600 mb-4">
-              {error === "Album not found"
-                ? "لم نتمكن من العثور على المنتج المطلوب"
-                : "حدث خطأ في تحميل البيانات"}
-            </p>
-            <button
-              onClick={() => navigate("/gallery")}
-              className="bg-purple text-white px-6 py-3 rounded-lg hover:bg-purple-hover transition-colors"
-            >
-              العودة للمعرض
-            </button>
-          </div>
+      <div className="min-h-screen bg-beige flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">😔</div>
+          <h2 className="text-xl font-bold text-gray-700 mb-2">
+            {error === "Album not found" ? "المنتج غير موجود" : "حدث خطأ"}
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {error === "Album not found"
+              ? "لم نتمكن من العثور على المنتج المطلوب"
+              : "حدث خطأ في تحميل البيانات"}
+          </p>
+          <button
+            onClick={() => navigate("/gallery")}
+            className="bg-purple text-white px-6 py-3 rounded-lg hover:bg-purple-hover transition-colors"
+          >
+            العودة للمعرض
+          </button>
         </div>
-      </Layout>
+      </div>
     );
   }
 
-  // حساب متوسط التقييمات
   const averageRating =
     reviews.length > 0
       ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
       : 0;
 
-  // معالجة البيانات المفقودة
-  // معالجة البيانات المفقودة وفلترة الصور الصالحة
   const albumMedia = album.media || [];
 
-  // إضافة تحقق من صحة بيانات الصور
   const validMedia = albumMedia.filter((media) => {
     if (!media) {
       console.warn("Found null/undefined media item");
@@ -192,7 +192,6 @@ export default function AlbumDetail() {
 
   return (
     <div className="min-h-screen bg-beige py-8">
-      {/* التنقل العلوي */}
       <div className="container mx-auto px-4 mb-6">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
@@ -213,7 +212,6 @@ export default function AlbumDetail() {
 
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12">
-          {/* قسم الصور */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -221,7 +219,6 @@ export default function AlbumDetail() {
           >
             {albumMedia.length > 0 ? (
               <>
-                {/* الصورة الرئيسية */}
                 <div className="mb-4">
                   <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl group cursor-pointer">
                     <img
@@ -236,13 +233,9 @@ export default function AlbumDetail() {
                     />
                   </div>
                 </div>
-
-                {/* الصور المصغرة */}
-                {/* الصور المصغرة - إضافة تحقق إضافي */}
                 {validMedia.length > 1 && (
                   <div className="grid grid-cols-4 gap-2">
                     {validMedia.map((media, index) => {
-                      // تحقق إضافي من صحة البيانات
                       if (!media.url) {
                         console.warn("Media missing URL at index:", index);
                         return null;
@@ -262,7 +255,7 @@ export default function AlbumDetail() {
                             src={media.url}
                             alt={media.alt || album.title}
                             className="w-full h-full object-cover"
-loading="lazy"
+                            loading="lazy"
                           />
                         </button>
                       );
@@ -276,20 +269,14 @@ loading="lazy"
               </div>
             )}
           </motion.div>
-
-          {/* قسم التفاصيل */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
             className="space-y-6"
           >
-            {/* العنوان والشارات */}
             <div>
               <div className="flex items-center gap-3 mb-4">
-                {album.status === "published" && (
-                  <Badge variant="featured">منشور</Badge>
-                )}
                 <Badge variant="category">
                   {album.category === "macrame" ? "مكرمية" : "برواز"}
                 </Badge>
@@ -304,10 +291,29 @@ loading="lazy"
                   <Eye size={20} />
                   <span>{album.view_count || 0} مشاهدة</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Heart size={20} />
-                  <span>{Math.floor((album.view_count || 0) / 10)} إعجاب</span>
-                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleLike();
+                  }}
+                  disabled={isLoading}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-200 ${
+                    isLiked
+                      ? "bg-red-500 text-white hover:bg-red-600"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  } ${
+                    isLoading
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
+                  aria-label={isLiked ? "إلغاء الإعجاب" : "إضافة إعجاب"}
+                >
+                  <Heart
+                    size={20}
+                    className={`${isLiked ? "fill-current" : ""}`}
+                  />
+                  <span>{likesCount} إعجاب</span>
+                </button>
                 {reviews.length > 0 && (
                   <div className="flex items-center gap-1">
                     <Star size={20} className="text-yellow-500" />
@@ -318,16 +324,12 @@ loading="lazy"
                 )}
               </div>
             </div>
-
-            {/* الوصف */}
             <div className="bg-white rounded-2xl p-6 shadow-lg">
               <h3 className="text-xl font-bold text-purple mb-3">وصف المنتج</h3>
               <p className="text-gray-700 leading-relaxed">
                 {album.description || "لا يوجد وصف متاح"}
               </p>
             </div>
-
-            {/* ملاحظة الصانعة */}
             {album.maker_note && (
               <div className="bg-gradient-to-br from-purple to-pink rounded-2xl p-6 text-white shadow-lg">
                 <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
@@ -349,8 +351,6 @@ loading="lazy"
                 </div>
               </div>
             )}
-
-            {/* الكلمات المفتاحية */}
             {albumTags.length > 0 && (
               <div>
                 <h3 className="text-lg font-bold text-purple mb-3">
@@ -368,8 +368,6 @@ loading="lazy"
                 </div>
               </div>
             )}
-
-            {/* أزرار العمل */}
             <div className="space-y-4">
               <ApplyNow album={album} className="w-full py-4 text-lg">
                 اطلب هذا المنتج الآن
@@ -383,7 +381,6 @@ loading="lazy"
                   <MessageCircle size={20} />
                   استفسر بالواتساب
                 </button>
-
                 <button
                   onClick={handleShare}
                   className="bg-white text-purple border-2 border-purple px-6 py-3 rounded-xl font-semibold hover:bg-purple hover:text-white transition-colors flex items-center justify-center gap-2"
@@ -395,8 +392,6 @@ loading="lazy"
             </div>
           </motion.div>
         </div>
-
-        {/* قسم التقييمات */}
         {reviews.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -409,7 +404,6 @@ loading="lazy"
                 <Users size={24} />
                 آراء العملاء ({reviews.length})
               </h3>
-
               <div className="space-y-6">
                 {reviews.map((review) => (
                   <div
@@ -458,8 +452,6 @@ loading="lazy"
             </div>
           </motion.div>
         )}
-
-        {/* منتجات مشابهة */}
         {relatedAlbums.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -470,47 +462,22 @@ loading="lazy"
             <h3 className="text-2xl font-bold text-purple mb-8 text-center">
               منتجات مشابهة
             </h3>
-
             <div className="grid md:grid-cols-3 gap-6">
-              {relatedAlbums.map((relatedAlbum) => (
-                <div
+              {relatedAlbums.map((relatedAlbum, index) => (
+                <AlbumCard
                   key={relatedAlbum.id}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-                  onClick={() => navigate(`/album/${relatedAlbum.slug}`)}
-                >
-                  <div className="aspect-square overflow-hidden">
-                    <img
-                      src={
-                        relatedAlbum.cover_image ||
-                        relatedAlbum.cover_media?.url
-                      }
-                      alt={relatedAlbum.title}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                    loading="lazy"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h4 className="font-bold text-purple mb-2">
-                      {relatedAlbum.title}
-                    </h4>
-                    <div className="flex items-center justify-between text-gray-600 text-sm">
-                      <span>{relatedAlbum.view_count || 0} مشاهدة</span>
-                      <Badge variant="category">
-                        {relatedAlbum.category === "macrame"
-                          ? "مكرمية"
-                          : "برواز"}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
+                  album={relatedAlbum}
+                  index={index}
+                  isVisible={true}
+                  onImageClick={handleRelatedImageClick}
+                  onAlbumClick={handleRelatedAlbumClick}
+                  variant="gallery"
+                />
               ))}
             </div>
           </motion.div>
         )}
       </div>
-
-      {/* مكون Lightbox */}
-      <Lightbox />
     </div>
   );
 }

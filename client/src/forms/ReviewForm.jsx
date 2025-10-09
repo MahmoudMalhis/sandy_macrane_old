@@ -408,16 +408,16 @@ const ReviewForm = ({
                       />
                     )}
                     <div>
-                      <h3 className="font-medium text-purple">
+                      <h3 className="font-medium text-gray-300">
                         {albumPreview.title}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-100">
                         {albumPreview.category === "macrame"
                           ? "مكرمية"
                           : "برواز"}
                       </p>
                       {albumPreview.description && (
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                        <p className="text-xs text-gray-50 mt-1 line-clamp-2">
                           {albumPreview.description}
                         </p>
                       )}

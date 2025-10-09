@@ -1,16 +1,15 @@
-/* eslint-disable no-unused-vars */
-// client/src/components/home/FeaturedAlbums.jsx - محدث لاستخدام البيانات الحقيقية
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Eye, Heart, ArrowLeft } from "lucide-react";
-import Badge from "../common/Badge";
-import ApplyNow from "../ApplyNow";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import AlbumCard from "../common/AlbumCard";
+import { sortAlbums, prepareAlbumImages } from "../../utils/albumUtils";
+import useAppStore from "../../store/useAppStore";
 
 export default function FeaturedAlbums({ albums = [], settings }) {
   const [isVisible, setIsVisible] = useState(false);
-  const [hoveredAlbum, setHoveredAlbum] = useState(null);
-  const navigation = useNavigate();
+  const navigate = useNavigate();
+  const { openLightbox } = useAppStore();
 
   const defaultSettings = {
     section_title: "منتجاتنا المميزة",
@@ -37,54 +36,28 @@ export default function FeaturedAlbums({ albums = [], settings }) {
     return () => observer.disconnect();
   }, []);
 
-  const getBadgeVariant = (status) => {
-    switch (status) {
-      case "new":
-        return "new";
-      case "featured":
-        return "featured";
-      default:
-        return "category";
+  const sortedAlbums = sortAlbums(
+    albums,
+    albumsSettings.sort_by,
+    albumsSettings.show_count
+  );
+
+  const handleImageClick = (album, imageIndex = 0) => {
+    const images = prepareAlbumImages(album);
+    openLightbox(images, imageIndex);
+  };
+
+  const handleAlbumClick = (album) => {
+    if (!album.slug) {
+      console.error("Album missing slug:", album);
+      return;
     }
+    navigate(`/album/${album.slug}`);
   };
 
-  const getBadgeText = (status) => {
-    switch (status) {
-      case "new":
-        return "جديد";
-      case "featured":
-        return "مميز";
-      default:
-        return "";
-    }
+  const handleViewAll = () => {
+    navigate("/gallery");
   };
-
-  const getCategoryText = (category) => {
-    return category === "macrame" ? "مكرمية" : "برواز";
-  };
-
-  const getSortedAlbums = () => {
-    if (!albums || albums.length === 0) return [];
-    let sortedAlbums = [...albums];
-    switch (albumsSettings.sort_by) {
-      case "view_count":
-        sortedAlbums.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
-        break;
-      case "created_at":
-        sortedAlbums.sort(
-          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
-        );
-        break;
-      case "random":
-        sortedAlbums = sortedAlbums.sort(() => Math.random() - 0.5);
-        break;
-      default:
-        break;
-    }
-    return sortedAlbums.slice(0, albumsSettings.show_count);
-  };
-
-  const sortedAlbums = getSortedAlbums();
 
   if (!sortedAlbums || sortedAlbums.length === 0) {
     return (
@@ -115,6 +88,7 @@ export default function FeaturedAlbums({ albums = [], settings }) {
   return (
     <section id="featured-albums" className="py-16 lg:py-24 bg-beige">
       <div className="container mx-auto px-4">
+        {/* العنوان والوصف */}
         <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0, y: 30 }}
@@ -129,114 +103,38 @@ export default function FeaturedAlbums({ albums = [], settings }) {
           </p>
           <div className="w-24 h-1 bg-pink mx-auto mt-6 rounded-full"></div>
         </motion.div>
+
+        {/* شبكة الألبومات */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {sortedAlbums.map((album, index) => (
-            <motion.div
+            <AlbumCard
               key={album.id}
-              className="group relative"
-              initial={{ opacity: 0, y: 50 }}
-              animate={isVisible ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.8, delay: index * 0.2 }}
-              onMouseEnter={() => setHoveredAlbum(album.id)}
-              onMouseLeave={() => setHoveredAlbum(null)}
-            >
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden transform group-hover:scale-105 group-hover:shadow-2xl transition-all duration-500">
-                <div className="relative h-64 overflow-hidden">
-                  <img
-                    src={
-                      album.cover_image ||
-                      album.media?.[0]?.url ||
-                      album.cover_media?.url ||
-                      "/images/default-album.jpg"
-                    }
-                    alt={album.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-300"></div>
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    {album.status && album.status !== "published" && (
-                      <Badge variant={getBadgeVariant(album.status)}>
-                        {getBadgeText(album.status)}
-                      </Badge>
-                    )}
-                    <Badge variant="category">
-                      {getCategoryText(album.category)}
-                    </Badge>
-                  </div>
-                  <div
-                    className={`absolute bottom-4 left-4 right-4 transform transition-all duration-300 ${
-                      hoveredAlbum === album.id
-                        ? "translate-y-0 opacity-100"
-                        : "translate-y-4 opacity-0"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-white">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                          <Eye size={16} />
-                          <span className="text-sm">
-                            {album.view_count || 0}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Heart size={16} />
-                          <span className="text-sm">
-                            {Math.floor((album.view_count || 0) / 10)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-purple mb-2 group-hover:text-pink transition-colors duration-300">
-                    {album.title}
-                  </h3>
-                  <p className="text-gray-600 mb-4 line-clamp-2">
-                    {album.description || "وصف الألبوم غير متوفر"}
-                  </p>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>{album.media?.length || 0} صورة</span>
-                      <span>{album.view_count || 0} مشاهدة</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <ApplyNow album={album} className="flex-1 text-sm">
-                      اطلب الآن
-                    </ApplyNow>
-                    <button
-                      className="px-4 py-2 border-2 border-purple text-purple hover:bg-purple hover:text-white rounded-full transition-all duration-300 flex items-center gap-2 cursor-pointer"
-                      onClick={() => {
-                        console.log("View album:", album.slug);
-                      }}
-                    >
-                      <span className="text-sm">عرض</span>
-                      <ArrowLeft size={16} />
-                    </button>
-                  </div>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-white to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"></div>
-              </div>
-            </motion.div>
+              album={album}
+              index={index}
+              isVisible={isVisible}
+              onImageClick={handleImageClick}
+              onAlbumClick={handleAlbumClick}
+              variant="featured"
+            />
           ))}
         </div>
+
+        {/* زر عرض المزيد */}
         <motion.div
           className="text-center mt-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, delay: 0.8 }}
+          initial={{ opacity: 0 }}
+          animate={isVisible ? { opacity: 1 } : {}}
+          transition={{ duration: 0.8, delay: 0.5 }}
         >
           <button
-            className="bg-purple text-white px-8 py-4 rounded-full hover:bg-purple-hover transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-3 mx-auto cursor-pointer"
-            onClick={() => {
-              navigation("/album");
-            }}
+            onClick={handleViewAll}
+            className="group inline-flex items-center gap-2 px-8 py-4 bg-purple text-white rounded-full hover:bg-purple-hover transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
           >
-            <span className="font-bold">{albumsSettings.button_text}</span>
-            عرض الالبومات
-            <ArrowLeft size={20} />
+            <span className="font-medium">{albumsSettings.button_text}</span>
+            <ArrowLeft
+              size={20}
+              className="group-hover:-translate-x-1 transition-transform duration-300"
+            />
           </button>
         </motion.div>
       </div>

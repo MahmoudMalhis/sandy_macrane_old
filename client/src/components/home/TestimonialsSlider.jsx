@@ -10,9 +10,11 @@ import { Star, Quote, ArrowLeft } from "lucide-react";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
+import { useNavigate } from "react-router-dom";
 
 const TestimonialsSlider = ({ testimonials = [], settings }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const navigation = useNavigate();
 
   // الإعدادات الافتراضية
   const defaultSettings = {
@@ -278,8 +280,7 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
           <button
             className="bg-purple text-white px-8 py-4 rounded-full hover:bg-purple-hover transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-3 mx-auto cursor-pointer"
             onClick={() => {
-              // يمكن إضافة منطق للانتقال لصفحة جميع التقييمات
-              console.log("View all testimonials");
+              navigation("/testimonials");
             }}
           >
             <span className="font-bold">

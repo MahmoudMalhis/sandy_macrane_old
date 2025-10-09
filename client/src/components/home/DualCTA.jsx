@@ -1,11 +1,12 @@
-/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Palette, Eye, ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import ApplyNow from "../ApplyNow";
+import { useNavigate } from "react-router-dom";
 
 export default function DualCTA({ ctaData }) {
   const [isVisible, setIsVisible] = useState(false);
+  const navigate = useNavigate();
   const data = ctaData || {};
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function DualCTA({ ctaData }) {
 
     return (
       <motion.div
-        className="relative group cursor-pointer"
+        className="relative group"
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={isVisible ? { opacity: 1, y: 0, scale: 1 } : {}}
         transition={{ duration: 0.8, delay: index * 0.2 }}
@@ -36,7 +37,7 @@ export default function DualCTA({ ctaData }) {
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="relative h-96 lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl group-hover:shadow-3xl transition-all duration-500 transform group-hover:scale-105">
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 pointer-events-none">
             {ctaInfo.image && (
               <img
                 src={ctaInfo.image}
@@ -53,7 +54,7 @@ export default function DualCTA({ ctaData }) {
             ></div>
             <div className="absolute inset-0 bg-black opacity-30 group-hover:opacity-20 transition-opacity duration-300"></div>
           </div>
-          <div className="relative h-full flex flex-col justify-center items-center text-center text-white p-8">
+          <div className="relative h-full flex flex-col justify-center items-center text-center text-white p-8 pointer-events-auto">
             {ctaInfo.icon && (
               <motion.div
                 className="mb-6"
@@ -108,7 +109,10 @@ export default function DualCTA({ ctaData }) {
                 {isCustom ? (
                   <ApplyNow />
                 ) : (
-                  <button className="bg-white text-purple hover:bg-light-gray px-8 py-4 rounded-full text-lg font-bold shadow-lg transition-all duration-300 flex items-center gap-3">
+                  <button
+                    className="bg-white text-purple hover:bg-light-gray px-8 py-4 rounded-full text-lg font-bold shadow-lg transition-all duration-300 flex items-center gap-3"
+                    onClick={() => navigate("/gallery")}
+                  >
                     <span>{ctaInfo.button_text}</span>
                     <ArrowLeft size={20} />
                   </button>
@@ -116,7 +120,7 @@ export default function DualCTA({ ctaData }) {
               </motion.div>
             )}
           </div>
-          <div className="absolute top-4 right-4">
+          <div className="absolute top-4 right-4 pointer-events-none">
             <motion.div
               animate={
                 isHovered
@@ -128,7 +132,7 @@ export default function DualCTA({ ctaData }) {
               <Sparkles size={24} className="text-white" />
             </motion.div>
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-white opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-white opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"></div>{" "}
         </div>
       </motion.div>
     );

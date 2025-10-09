@@ -4,34 +4,40 @@ import Button from "../../common/Button";
 import { Save } from "lucide-react";
 
 // client/src/components/admin/settings/TestimonialsSettings.jsx
-export default function TestimonialsSettings ({ data, onSave, saving }) {
+export default function TestimonialsSettings({ data, onSave, saving }) {
   const { register, handleSubmit, setValue } = useForm();
 
   useEffect(() => {
     if (data?.home_testimonials) {
       const testimonials = data.home_testimonials;
       setValue("testimonials_section_title", testimonials.section_title || "");
-      setValue("testimonials_section_description", testimonials.section_description || "");
+      setValue(
+        "testimonials_section_description",
+        testimonials.section_description || ""
+      );
       setValue("testimonials_button_text", testimonials.button_text || "");
       setValue("testimonials_show_count", testimonials.show_count || 4);
       setValue("testimonials_min_rating", testimonials.min_rating || 4);
       setValue("testimonials_autoplay", testimonials.autoplay || true);
-      setValue("testimonials_autoplay_delay", testimonials.autoplay_delay || 6000);
+      setValue(
+        "testimonials_autoplay_delay",
+        testimonials.autoplay_delay || 6000
+      );
     }
   }, [data, setValue]);
 
   const onSubmit = async (formData) => {
     const testimonialsData = {
-      section_title: formData.testimonials_section_title,
-      section_description: formData.testimonials_section_description,
-      button_text: formData.testimonials_button_text,
-      show_count: parseInt(formData.testimonials_show_count),
-      min_rating: parseInt(formData.testimonials_min_rating),
-      autoplay: formData.testimonials_autoplay,
-      autoplay_delay: parseInt(formData.testimonials_autoplay_delay),
+      section_title: formData.testimonials_section_title || "",
+      section_description: formData.testimonials_section_description || "",
+      button_text: formData.testimonials_button_text || "",
+      show_count: parseInt(formData.testimonials_show_count) || 4,
+      min_rating: parseInt(formData.testimonials_min_rating) || 4,
+      autoplay: formData.testimonials_autoplay !== false,
+      autoplay_delay: parseInt(formData.testimonials_autoplay_delay) || 6000,
     };
 
-    await onSave("testimonials", testimonialsData);
+    await onSave(testimonialsData);
   };
 
   return (

@@ -262,10 +262,10 @@ export default function OrderForm() {
                     />
                   )}
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">
+                    <p className="text-sm text-gray-400 mb-1">
                       المنتج المرجعي:
                     </p>
-                    <h3 className="font-bold text-purple">
+                    <h3 className="font-bold text-gray-300">
                       {selectedAlbum.title}
                     </h3>
                   </div>

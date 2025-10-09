@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-// client/src/pages/Testimonials.jsx
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +13,7 @@ import Loading from "../utils/Loading";
 import { reviewsAPI } from "../api/reviews";
 import ReviewForm from "../forms/ReviewForm";
 import { Link } from "react-router-dom";
+import ApplyNow from "../components/ApplyNow";
 
 export default function Testimonials() {
   const [testimonials, setTestimonials] = useState([]);
@@ -49,21 +48,17 @@ export default function Testimonials() {
     fetchTestimonials();
   }, []);
 
-  // تطبيق الفلاتر
   useEffect(() => {
     let filtered = [...testimonials];
 
-    // فلترة بحسب التقييم
     if (filters.rating !== "all") {
       filtered = filtered.filter(
         (testimonial) => testimonial.rating >= parseInt(filters.rating)
       );
     }
 
-    // فلترة بحسب التصنيف
     if (filters.category !== "all") {
       filtered = filtered.filter((testimonial) => {
-        // تحديد التصنيف من خلال album_title أو أي حقل متاح
         if (!testimonial.album_title) return false;
         const isFrame =
           testimonial.album_title.includes("برواز") ||
@@ -72,7 +67,6 @@ export default function Testimonials() {
       });
     }
 
-    // فلترة بحسب البحث
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
       filtered = filtered.filter(
@@ -83,7 +77,6 @@ export default function Testimonials() {
       );
     }
 
-    // ترتيب النتائج
     switch (sortBy) {
       case "latest":
         filtered.sort(
@@ -142,6 +135,17 @@ export default function Testimonials() {
     });
     return distribution;
   };
+  const getCustomerSatisfaction = () => {
+    if (testimonials.length === 0) return 0;
+
+    const positiveReviews = testimonials.filter(
+      (testimonial) => testimonial.rating >= 4
+    ).length;
+
+    const satisfaction = (positiveReviews / testimonials.length) * 100;
+
+    return Math.round(satisfaction);
+  };
 
   const fetchTestimonials = async () => {
     try {
@@ -161,6 +165,7 @@ export default function Testimonials() {
 
   const averageRating = getAverageRating();
   const ratingDistribution = getRatingDistribution();
+  const customerSatisfaction = getCustomerSatisfaction();
 
   return (
     <div className="min-h-screen bg-beige py-8">
@@ -494,12 +499,9 @@ export default function Testimonials() {
                 اترك تقييمك الآن
               </button>
 
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-purple px-8 py-4 rounded-full font-bold transition-all duration-300 cupsor-pointer"
-              >
+              <ApplyNow className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-purple px-8 py-4 rounded-full font-bold transition-all duration-300 cupsor-pointer">
                 اطلب منتجاً جديداً
-              </button>
+              </ApplyNow>
             </div>
 
             {/* إحصائيات سريعة */}
@@ -515,7 +517,9 @@ export default function Testimonials() {
                 <div className="text-sm opacity-80">متوسط التقييم</div>
               </div>
               <div>
-                <div className="text-3xl font-bold mb-2">98%</div>
+                <div className="text-3xl font-bold mb-2">
+                  {customerSatisfaction}%
+                </div>
                 <div className="text-sm opacity-80">رضا العملاء</div>
               </div>
             </div>

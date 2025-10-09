@@ -330,6 +330,7 @@ class AlbumsService {
   }
 
   // Get featured albums for homepage
+  // Get featured albums for homepage
   static async getFeatured(limit = 6) {
     try {
       const albums = await db("albums")
@@ -338,8 +339,12 @@ class AlbumsService {
         .orderBy("created_at", "desc")
         .limit(limit);
 
-      // Include cover media
+      // ⭐ التعديل المهم: Include ALL media for each album
       for (let album of albums) {
+        // جلب جميع الصور للألبوم
+        album.media = await this.getAlbumMedia(album.id);
+
+        // جلب صورة الغلاف (للتوافق مع الكود القديم)
         const coverMedia = await db("media")
           .where("album_id", album.id)
           .where("is_cover", true)
