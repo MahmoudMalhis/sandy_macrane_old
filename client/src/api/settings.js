@@ -3,7 +3,7 @@ const API_BASE_URL =
 
 class SettingsAPI {
   async makeRequest(endpoint, options = {}) {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("authToken");
 
     const defaultOptions = {
       headers: {

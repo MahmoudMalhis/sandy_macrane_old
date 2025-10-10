@@ -62,7 +62,12 @@ export default function AdminLayout() {
       label: "صفحة من نحن",
     },
     {
-      path: "/admin/general",
+      path: "/admin/contact-messages",
+      icon: <Mail size={20} />,
+      label: "رسائل التواصل",
+    },
+    {
+      path: "/admin/settings",
       icon: <Settings size={20} />,
       label: "الإعدادات العامة",
     },

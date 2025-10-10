@@ -6,25 +6,20 @@ import {
   Save,
   Settings,
   Phone,
-  Mail,
   Globe,
   Facebook,
   Instagram,
-  MapPin,
-  Clock,
   Palette,
   Upload,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import Button from "../../components/common/Button";
 import Loading from "../../utils/LoadingSettings";
+import { settingsAPI } from "../../api/settings";
 
 export default function GeneralSettings() {
   const [activeTab, setActiveTab] = useState("contact");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState(null);
 
   const {
     register,
@@ -34,110 +29,106 @@ export default function GeneralSettings() {
     formState: { errors },
   } = useForm();
 
-  // تحميل الإعدادات
   useEffect(() => {
+
+
+    fetchSettings();
+  }, [setValue]);
     const fetchSettings = async () => {
       try {
         setLoading(true);
+        const response = await settingsAPI.getAdminSettings();
 
-        // محاكاة API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (response?.success) {
+          const data = response.data;
 
-        const defaultSettings = {
-          contact: {
-            whatsapp_owner: "970599123456",
-            email: "sandy@example.com",
-            address: "نابلس، فلسطين",
-            business_hours: {
-              start: "09:00",
-              end: "21:00",
-              days: "الأحد - الخميس",
-              timezone: "Palestine",
+          const loadedSettings = {
+            contact: {
+              whatsapp_owner: data.whatsapp_owner || "",
+              email: data.contact_info?.email || "",
+              address: data.contact_info?.address || "",
+              business_hours: {
+                weekdays: data.contact_info?.working_hours?.weekdays || "",
+                weekend: data.contact_info?.working_hours?.weekend || "",
+              },
             },
-          },
-          social: {
-            facebook: "https://facebook.com/sandymacrame",
-            instagram: "https://instagram.com/sandymacrame",
-            whatsapp_business: "970599123456",
-            website: "https://sandymacrame.com",
-          },
-          branding: {
-            primary_color: "#8b5f8c",
-            secondary_color: "#d8a7c1",
-            accent_color: "#a1b08c",
-            logo_url: "/logo.jpg",
-            site_name: "ساندي مكرمية",
-            tagline: "فن المكرمية بلمسة عصرية",
-          },
-          preferences: {
-            default_language: "ar",
-            currency: "USD",
-            timezone: "Asia/Gaza",
-            date_format: "DD/MM/YYYY",
-            notifications_email: true,
-            notifications_whatsapp: true,
-          },
-        };
+            social: {
+              facebook:
+                data.social_links?.facebook ||
+                data.contact_info?.social?.facebook ||
+                "",
+              instagram:
+                data.social_links?.instagram ||
+                data.contact_info?.social?.instagram ||
+                "",
+              whatsapp_business: data.whatsapp_owner || "",
+            },
+          };
 
-        setSettings(defaultSettings);
-
-        // ملء النموذج بالبيانات المحملة
-        Object.keys(defaultSettings).forEach((section) => {
-          Object.keys(defaultSettings[section]).forEach((key) => {
-            if (
-              typeof defaultSettings[section][key] === "object" &&
-              key !== "business_hours"
-            ) {
-              Object.keys(defaultSettings[section][key]).forEach((subKey) => {
-                setValue(
-                  `${section}_${key}_${subKey}`,
-                  defaultSettings[section][key][subKey]
-                );
-              });
-            } else if (key === "business_hours") {
-              Object.keys(defaultSettings[section][key]).forEach((subKey) => {
-                setValue(
-                  `${section}_${key}_${subKey}`,
-                  defaultSettings[section][key][subKey]
-                );
-              });
-            } else {
-              setValue(`${section}_${key}`, defaultSettings[section][key]);
-            }
-          });
-        });
+          setValue(
+            "contact_whatsapp_owner",
+            loadedSettings.contact.whatsapp_owner
+          );
+          setValue("contact_email", loadedSettings.contact.email);
+          setValue("contact_address", loadedSettings.contact.address);
+          setValue(
+            "business_hours_weekdays",
+            loadedSettings.contact.business_hours.weekdays
+          );
+          setValue(
+            "business_hours_weekend",
+            loadedSettings.contact.business_hours.weekend
+          );
+          setValue("social_facebook", loadedSettings.social.facebook);
+          setValue("social_instagram", loadedSettings.social.instagram);
+          setValue(
+            "social_whatsapp_business",
+            loadedSettings.social.whatsapp_business
+          );
+        }
       } catch (error) {
         console.error("Error fetching settings:", error);
         toast.error("فشل في تحميل الإعدادات");
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchSettings();
-  }, [setValue]);
-
-  // حفظ إعدادات قسم معين
-  const saveSection = async (sectionName, data) => {
+  };
+  
+  const saveSettings = async (data) => {
     setSaving(true);
     try {
-      // محاكاة API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await settingsAPI.updateContactInfo({
+        contact_info: {
+          email: data.contact_email,
+          address: data.contact_address,
+          working_hours: {
+            weekdays: data.business_hours_weekdays,
+            weekend: data.business_hours_weekend,
+          },
+          social: {
+            facebook: data.social_facebook,
+            instagram: data.social_instagram,
+          },
+        },
+      });
 
-      // تحديث الحالة المحلية
-      setSettings((prev) => ({
-        ...prev,
-        [sectionName]: data,
-      }));
+      // حفظ رقم واتساب
+      await settingsAPI.updateWhatsAppOwner(data.contact_whatsapp_owner);
 
-      toast.success(
-        `تم حفظ إعدادات ${getSectionArabicName(sectionName)} بنجاح`
-      );
-      return true;
+      // حفظ روابط التواصل
+      await settingsAPI.updateSocialLinks({
+        facebook: data.social_facebook,
+        instagram: data.social_instagram,
+        whatsapp: data.social_whatsapp_business,
+      });
+
+      toast.success("✅ تم حفظ الإعدادات بنجاح");
+
+      // إعادة تحميل الإعدادات
+      await fetchSettings();
     } catch (error) {
-      console.error(`Error saving ${sectionName}:`, error);
-      toast.error("حدث خطأ أثناء الحفظ");
-      return false;
+      console.error("Error saving settings:", error);
+      toast.error("❌ فشل في حفظ الإعدادات");
     } finally {
       setSaving(false);
     }
@@ -182,28 +173,8 @@ export default function GeneralSettings() {
   }
 
   const onSubmit = async (data) => {
-    const currentSection = activeTab;
-
-    // تجميع بيانات القسم الحالي
-    const sectionData = {};
-    Object.keys(data).forEach((key) => {
-      if (key.startsWith(`${currentSection}_`)) {
-        const cleanKey = key.replace(`${currentSection}_`, "");
-
-        // معالجة البيانات المتداخلة
-        if (cleanKey.includes("_")) {
-          const [parentKey, childKey] = cleanKey.split("_");
-          if (!sectionData[parentKey]) {
-            sectionData[parentKey] = {};
-          }
-          sectionData[parentKey][childKey] = data[key];
-        } else {
-          sectionData[cleanKey] = data[key];
-        }
-      }
-    });
-
-    await saveSection(currentSection, sectionData);
+    // استدعاء دالة saveSettings التي أضفناها
+    await saveSettings(data);
   };
 
   return (
@@ -243,7 +214,6 @@ export default function GeneralSettings() {
             <ContactSettings
               register={register}
               errors={errors}
-              watch={watch}
             />
           )}
 
@@ -292,7 +262,7 @@ const TabButton = ({ icon, label, active, onClick }) => (
 );
 
 // مكون إعدادات التواصل
-const ContactSettings = ({ register, errors, watch }) => (
+const ContactSettings = ({ register, errors }) => (
   <div className="space-y-6">
     <h2 className="text-xl font-semibold mb-4">معلومات التواصل الأساسية</h2>
 
@@ -397,8 +367,7 @@ const ContactSettings = ({ register, errors, watch }) => (
   </div>
 );
 
-// مكون إعدادات وسائل التواصل
-const SocialSettings = ({ register, errors }) => (
+const SocialSettings = ({ register }) => (
   <div className="space-y-6">
     <h2 className="text-xl font-semibold mb-4">
       روابط وسائل التواصل الاجتماعي

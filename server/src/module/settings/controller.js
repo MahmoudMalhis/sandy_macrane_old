@@ -531,6 +531,33 @@ class SettingsController {
     }
   }
 
+static async updateContactInfo(req, res) {
+  try {
+    const { contact_info } = req.body;
+
+    await _set("contact_info", contact_info);
+
+    logInfo("Contact info updated", {
+      updatedBy: req.user?.email || "unknown",
+    });
+
+    res.json({
+      success: true,
+      message: "Contact info updated successfully",
+      data: contact_info,
+    });
+  } catch (error) {
+    logError("Update contact info failed", {
+      updatedBy: req.user?.email || "unknown",
+      error: error.message,
+    });
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update contact info",
+    });
+  }
+}
 }
 
 export const getPublic = SettingsController.getPublic;
@@ -554,5 +581,6 @@ export const updateAboutTimeline = SettingsController.updateAboutTimeline;
 export const updateAboutSEO = SettingsController.updateAboutSEO;
 export const updateAllAboutSections = SettingsController.updateAllAboutSections;
 export const updateAboutStats = SettingsController.updateAboutStats;
+export const updateContactInfo = SettingsController.updateContactInfo;
 
 export default SettingsController;

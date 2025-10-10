@@ -25,6 +25,7 @@ import inquiriesRoutes from "./module/inquiries/router.js";
 import settingsRoutes from "./module/settings/router.js";
 import adminRoutes from "./module/admin/router.js";
 import likesRoutes from "./module/albums/likes.routes.js";
+import contactRoutes from "./module/contact/router.js";
 
 const app = express();
 
@@ -131,6 +132,8 @@ app.use("/api/inquiries", inquiriesRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/albums", likesRoutes);
+app.use("/api/contact", contactRoutes);
+
 // 404 handler
 app.use("*", (req, res) => {
   res.status(404).json({

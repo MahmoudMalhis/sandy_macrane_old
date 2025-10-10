@@ -16,6 +16,9 @@ const AlbumsAdmin = lazy(() => import("./pages/admin/AlbumsAdmin"));
 const TestimonialsAdmin = lazy(() => import("./pages/admin/TestimonialsAdmin"));
 const InquiriesAdmin = lazy(() => import("./pages/admin/InquiriesAdmin"));
 const GeneralSettings = lazy(() => import("./pages/admin/GeneralSettings"));
+const ContactMessagesAdmin = lazy(() =>
+  import("./pages/admin/ContactMessagesAdmin")
+);
 const MediaAdmin = lazy(() => import("./pages/admin/MediaAdmin"));
 const AdminLogin = lazy(() => import("./pages/admin/Login"));
 const AboutPageSettings = lazy(() => import("./pages/admin/AboutPageSettings"));
@@ -79,6 +82,10 @@ export default function App() {
                   <Route path="albums/:id/media" element={<MediaAdmin />} />
                   <Route path="testimonials" element={<TestimonialsAdmin />} />
                   <Route path="inquiries" element={<InquiriesAdmin />} />
+                  <Route
+                    path="contact-messages"
+                    element={<ContactMessagesAdmin />}
+                  />
                   <Route path="settings" element={<GeneralSettings />} />
                   <Route path="about-page" element={<AboutPageSettings />} />
                 </Route>

@@ -22,6 +22,7 @@ import {
   updateAllAboutSections,
   updateAboutWorkshop,
   updateAboutStats,
+  updateContactInfo
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";
@@ -410,4 +411,7 @@ router.put(
   validate,
   updateAboutStats
 );
+
+router.put("/admin/contact-info", updateContactInfo);
+
 export default router;
