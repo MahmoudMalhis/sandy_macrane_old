@@ -10,7 +10,6 @@ import {
   Facebook,
   Instagram,
   Palette,
-  Upload,
 } from "lucide-react";
 import Button from "../../components/common/Button";
 import Loading from "../../utils/LoadingSettings";
@@ -34,6 +33,7 @@ export default function GeneralSettings() {
   useEffect(() => {
     fetchSettings();
   }, [setValue]);
+
   const fetchSettings = async () => {
     try {
       setLoading(true);
@@ -100,6 +100,7 @@ export default function GeneralSettings() {
       await settingsAPI.updateContactInfo({
         whatsapp_owner: data.contact_whatsapp_owner,
         contact_info: {
+          whatsapp: data.contact_whatsapp_owner,
           email: data.contact_email,
           address: data.contact_address,
           working_hours: {
@@ -132,31 +133,6 @@ export default function GeneralSettings() {
     }
   };
 
-  // رفع صورة اللوجو
-  const handleLogoUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("يرجى اختيار ملف صورة صحيح");
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("حجم الصورة يجب أن يكون أقل من 2 ميجابايت");
-      return;
-    }
-
-    try {
-      const imageUrl = URL.createObjectURL(file);
-      setValue("branding_logo_url", imageUrl);
-      toast.success("تم رفع اللوجو بنجاح");
-    } catch (error) {
-      console.error("Error uploading logo:", error);
-      toast.error("فشل في رفع اللوجو");
-    }
-  };
-
   const getSectionArabicName = (sectionKey) => {
     const names = {
       contact: "معلومات التواصل",
@@ -171,7 +147,6 @@ export default function GeneralSettings() {
   }
 
   const onSubmit = async (data) => {
-    // استدعاء دالة saveSettings التي أضفناها
     await saveSettings(data);
   };
 
@@ -217,16 +192,6 @@ export default function GeneralSettings() {
             <SocialSettings register={register} errors={errors} />
           )}
 
-          {/* تبويب الهوية البصرية */}
-          {activeTab === "branding" && (
-            <BrandingSettings
-              register={register}
-              errors={errors}
-              watch={watch}
-              onLogoUpload={handleLogoUpload}
-            />
-          )}
-
           {/* زر الحفظ */}
           <div className="flex justify-end pt-6 border-t">
             <Button type="submit" loading={saving} className="px-8">
@@ -264,11 +229,11 @@ const ContactSettings = ({ register, errors }) => (
     <div className="grid md:grid-cols-2 gap-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          رقم واتساب المالك *
+          رقم الهاتف *
         </label>
         <input
           {...register("contact_whatsapp_owner", {
-            required: "رقم واتساب مطلوب",
+            required: "رقم الهاتف مطلوب",
             pattern: {
               value: /^[0-9+]+$/,
               message: "رقم غير صحيح",
@@ -370,7 +335,7 @@ const SocialSettings = ({ register }) => (
 
     <div className="grid md:grid-cols-2 gap-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
           <Facebook size={16} className="text-blue-600" />
           صفحة فيسبوك
         </label>
@@ -383,7 +348,7 @@ const SocialSettings = ({ register }) => (
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
           <Instagram size={16} className="text-pink-600" />
           حساب إنستجرام
         </label>
@@ -396,7 +361,7 @@ const SocialSettings = ({ register }) => (
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
           <Phone size={16} className="text-green-600" />
           واتساب بزنس
         </label>
@@ -406,177 +371,6 @@ const SocialSettings = ({ register }) => (
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
           placeholder="970599123456"
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-          <Globe size={16} className="text-blue-500" />
-          الموقع الإلكتروني
-        </label>
-        <input
-          {...register("social_website")}
-          type="url"
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-          placeholder="https://sandymacrame.com"
-        />
-      </div>
-    </div>
-  </div>
-);
-
-// مكون إعدادات الهوية البصرية
-const BrandingSettings = ({ register, errors, watch, onLogoUpload }) => (
-  <div className="space-y-6">
-    <h2 className="text-xl font-semibold mb-4">الهوية البصرية والألوان</h2>
-
-    <div className="grid md:grid-cols-2 gap-8">
-      {/* معلومات العلامة التجارية */}
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            اسم الموقع *
-          </label>
-          <input
-            {...register("branding_site_name", {
-              required: "اسم الموقع مطلوب",
-            })}
-            type="text"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-            placeholder="ساندي مكرمية"
-          />
-          {errors.branding_site_name && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.branding_site_name.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            الشعار (Tagline)
-          </label>
-          <input
-            {...register("branding_tagline")}
-            type="text"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-            placeholder="فن المكرمية بلمسة عصرية"
-          />
-        </div>
-
-        {/* ألوان الموقع */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-800">ألوان الموقع</h3>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                اللون الأساسي
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  {...register("branding_primary_color")}
-                  type="color"
-                  className="w-16 h-12 border border-gray-300 rounded cursor-pointer appearance-none p-0"
-                />
-                <input
-                  {...register("branding_primary_color")}
-                  type="text"
-                  className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                  placeholder="#8b5f8c"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                اللون الثانوي
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  {...register("branding_secondary_color")}
-                  type="color"
-                  className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                />
-                <input
-                  {...register("branding_secondary_color")}
-                  type="text"
-                  className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                  placeholder="#d8a7c1"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                لون التمييز
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  {...register("branding_accent_color")}
-                  type="color"
-                  className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                />
-                <input
-                  {...register("branding_accent_color")}
-                  type="text"
-                  className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                  placeholder="#a1b08c"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* اللوجو */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          لوجو الموقع
-        </h3>
-
-        <div className="space-y-4">
-          {/* معاينة اللوجو الحالي */}
-          {watch("branding_logo_url") && (
-            <div className="text-center">
-              <img
-                src={watch("branding_logo_url")}
-                alt="لوجو الموقع"
-                className="w-24 h-24 mx-auto rounded-full border-4 border-gray-200 object-cover"
-                loading="lazy"
-              />
-              <p className="text-sm text-gray-600 mt-2">اللوجو الحالي</p>
-            </div>
-          )}
-
-          {/* رفع لوجو جديد */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              رفع لوجو جديد
-            </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple transition-colors">
-              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600 mb-2">
-                اضغط لاختيار صورة أو اسحبها هنا
-              </p>
-              <p className="text-xs text-gray-500 mb-4">
-                PNG, JPG, WEBP حتى 2MB
-              </p>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onLogoUpload}
-                className="hidden"
-                id="logo-upload"
-              />
-              <label
-                htmlFor="logo-upload"
-                className="bg-purple text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-purple-hover transition-colors"
-              >
-                اختر صورة
-              </label>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>

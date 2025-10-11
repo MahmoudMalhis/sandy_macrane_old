@@ -1,7 +1,6 @@
 import db, { fn } from "../../db/knex.js";
 
 class SettingsService {
-  // Get setting by key
   static async get(key) {
     try {
       const setting = await db("settings").where("key", key).first();
@@ -10,7 +9,6 @@ class SettingsService {
         return null;
       }
 
-      // Try to parse JSON, fallback to string value
       try {
         return JSON.parse(setting.value);
       } catch (error) {
@@ -21,7 +19,6 @@ class SettingsService {
     }
   }
 
-  // Set setting value
   static async set(key, value) {
     try {
       const stringValue =
@@ -49,7 +46,6 @@ class SettingsService {
     }
   }
 
-  // Get multiple settings
   static async getMultiple(keys) {
     try {
       const settings = await db("settings").whereIn("key", keys);
@@ -70,7 +66,6 @@ class SettingsService {
     }
   }
 
-  // Get all settings
   static async getAll() {
     try {
       const settings = await db("settings").orderBy("key", "asc");
@@ -91,7 +86,6 @@ class SettingsService {
     }
   }
 
-  // Set multiple settings
   static async setMultiple(settingsObject) {
     try {
       const results = {};
@@ -106,24 +100,6 @@ class SettingsService {
     }
   }
 
-  // Get public settings (for frontend)
-  static async getPublic() {
-    try {
-      const publicKeys = [
-        "whatsapp_owner",
-        "social_links",
-        "site_meta",
-        "home_slider",
-        "contact_info",
-      ];
-
-      return await this.getMultiple(publicKeys);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // Delete setting
   static async delete(key) {
     try {
       const setting = await db("settings").where("key", key).first();
@@ -140,7 +116,6 @@ class SettingsService {
     }
   }
 
-  // Get WhatsApp owner number
   static async getWhatsAppOwner() {
     try {
       return (await this.get("whatsapp_owner")) || process.env.WHATSAPP_OWNER;
@@ -149,7 +124,6 @@ class SettingsService {
     }
   }
 
-  // Get social links
   static async getSocialLinks() {
     try {
       const links = await this.get("social_links");
@@ -168,7 +142,6 @@ class SettingsService {
     }
   }
 
-  // Get site metadata
   static async getSiteMeta() {
     try {
       const meta = await this.get("site_meta");
@@ -188,7 +161,6 @@ class SettingsService {
     }
   }
 
-  // Get home slider settings
   static async getHomeSlider() {
     try {
       const slider = await this.get("home_slider");
@@ -216,7 +188,6 @@ class SettingsService {
     }
   }
 
-  // Update WhatsApp owner
   static async updateWhatsAppOwner(phoneNumber) {
     try {
       return await this.set("whatsapp_owner", phoneNumber);
@@ -225,7 +196,6 @@ class SettingsService {
     }
   }
 
-  // Update social links
   static async updateSocialLinks(links) {
     try {
       const currentLinks = await this.getSocialLinks();
@@ -237,7 +207,6 @@ class SettingsService {
     }
   }
 
-  // Update site metadata
   static async updateSiteMeta(meta) {
     try {
       const currentMeta = await this.getSiteMeta();
@@ -249,7 +218,6 @@ class SettingsService {
     }
   }
 
-  // Update home slider
   static async updateHomeSlider(slider) {
     try {
       const currentSlider = await this.getHomeSlider();
@@ -267,7 +235,7 @@ class SettingsService {
   static async getHomeAbout() {
     try {
       const about = await this.get("home_about");
-      
+
       if (!about) {
         return {
           title: "فن المكرمية بلمسة عصرية",
@@ -276,10 +244,22 @@ class SettingsService {
           button_text: "تعرف علينا أكثر",
           image: "/images/about-hero.jpg",
           highlights: [
-            { icon: "❤️", title: "صنع بحب", description: "كل قطعة تحمل لمسة شخصية" },
-            { icon: "✨", title: "تصاميم فريدة", description: "إبداعات لا تتكرر" },
-            { icon: "🏆", title: "جودة عالية", description: "مواد خام مختارة بعناية" }
-          ]
+            {
+              icon: "❤️",
+              title: "صنع بحب",
+              description: "كل قطعة تحمل لمسة شخصية",
+            },
+            {
+              icon: "✨",
+              title: "تصاميم فريدة",
+              description: "إبداعات لا تتكرر",
+            },
+            {
+              icon: "🏆",
+              title: "جودة عالية",
+              description: "مواد خام مختارة بعناية",
+            },
+          ],
         };
       }
 
@@ -289,41 +269,42 @@ class SettingsService {
     }
   }
 
-  // Update home about settings
   static async updateHomeAbout(aboutData) {
     try {
       const currentAbout = await this.getHomeAbout();
       const updatedAbout = { ...currentAbout, ...aboutData };
-      
+
       return await this.set("home_about", updatedAbout);
     } catch (error) {
       throw error;
     }
   }
 
-  // Get home CTA settings
   static async getHomeCTA() {
     try {
       const cta = await this.get("home_cta");
-      
+
       if (!cta) {
         return {
           section_title: "ابدأ رحلتك معنا",
-          section_description: "اختر الطريقة التي تناسبك للحصول على قطعة مكرمية أو برواز مميز",
+          section_description:
+            "اختر الطريقة التي تناسبك للحصول على قطعة مكرمية أو برواز مميز",
           custom_design: {
             title: "اطلب تصميم مخصص",
             subtitle: "حوّل أفكارك إلى قطعة فنية فريدة",
-            description: "احصل على تصميم مكرمية أو برواز مخصص حسب ذوقك الشخصي ومساحتك",
+            description:
+              "احصل على تصميم مكرمية أو برواز مخصص حسب ذوقك الشخصي ومساحتك",
             button_text: "ابدأ التصميم",
-            image: "/images/custom-design.jpg"
+            image: "/images/custom-design.jpg",
           },
           gallery: {
             title: "اذهب للمعرض",
             subtitle: "استكشف مجموعتنا الكاملة",
-            description: "تصفح جميع منتجاتنا المتاحة واختر ما يناسب ذوقك من تشكيلة واسعة",
+            description:
+              "تصفح جميع منتجاتنا المتاحة واختر ما يناسب ذوقك من تشكيلة واسعة",
             button_text: "زيارة المعرض",
-            image: "/images/gallery-preview.jpg"
-          }
+            image: "/images/gallery-preview.jpg",
+          },
         };
       }
 
@@ -333,30 +314,29 @@ class SettingsService {
     }
   }
 
-  // Update home CTA settings
   static async updateHomeCTA(ctaData) {
     try {
       const currentCTA = await this.getHomeCTA();
       const updatedCTA = { ...currentCTA, ...ctaData };
-      
+
       return await this.set("home_cta", updatedCTA);
     } catch (error) {
       throw error;
     }
   }
 
-  // Get home albums settings
   static async getHomeAlbums() {
     try {
       const albums = await this.get("home_albums");
-      
+
       if (!albums) {
         return {
           section_title: "منتجاتنا المميزة",
-          section_description: "اكتشف أحدث إبداعاتنا من المكرمية والبراويز المصنوعة بعناية فائقة",
+          section_description:
+            "اكتشف أحدث إبداعاتنا من المكرمية والبراويز المصنوعة بعناية فائقة",
           button_text: "عرض جميع المنتجات",
           show_count: 6,
-          sort_by: "view_count"
+          sort_by: "view_count",
         };
       }
 
@@ -366,32 +346,31 @@ class SettingsService {
     }
   }
 
-  // Update home albums settings
   static async updateHomeAlbums(albumsData) {
     try {
       const currentAlbums = await this.getHomeAlbums();
       const updatedAlbums = { ...currentAlbums, ...albumsData };
-      
+
       return await this.set("home_albums", updatedAlbums);
     } catch (error) {
       throw error;
     }
   }
 
-  // Get home testimonials settings
   static async getHomeTestimonials() {
     try {
       const testimonials = await this.get("home_testimonials");
-      
+
       if (!testimonials) {
         return {
           section_title: "ماذا يقول عملاؤنا",
-          section_description: "آراء حقيقية من عملائنا الكرام حول تجربتهم مع منتجاتنا",
+          section_description:
+            "آراء حقيقية من عملائنا الكرام حول تجربتهم مع منتجاتنا",
           button_text: "شاهد جميع التقييمات",
           show_count: 4,
           min_rating: 4,
           autoplay: true,
-          autoplay_delay: 6000
+          autoplay_delay: 6000,
         };
       }
 
@@ -401,23 +380,24 @@ class SettingsService {
     }
   }
 
-  // Update home testimonials settings
   static async updateHomeTestimonials(testimonialsData) {
     try {
       const currentTestimonials = await this.getHomeTestimonials();
-      const updatedTestimonials = { ...currentTestimonials, ...testimonialsData };
-      
+      const updatedTestimonials = {
+        ...currentTestimonials,
+        ...testimonialsData,
+      };
+
       return await this.set("home_testimonials", updatedTestimonials);
     } catch (error) {
       throw error;
     }
   }
 
-  // Get home WhatsApp settings
   static async getHomeWhatsApp() {
     try {
       const whatsapp = await this.get("home_whatsapp");
-      
+
       if (!whatsapp) {
         return {
           enabled: true,
@@ -426,14 +406,14 @@ class SettingsService {
             enabled: true,
             start: "09:00",
             end: "21:00",
-            timezone: "Palestine"
+            timezone: "Palestine",
           },
           quick_messages: [
             { id: 1, text: "أريد طلب قطعة مكرمية", icon: "🕸️" },
             { id: 2, text: "أود طلب برواز مخصص", icon: "🖼️" },
             { id: 3, text: "استفسار عن الأسعار", icon: "💰" },
-            { id: 4, text: "معلومات عن التوصيل", icon: "🚚" }
-          ]
+            { id: 4, text: "معلومات عن التوصيل", icon: "🚚" },
+          ],
         };
       }
 
@@ -443,23 +423,21 @@ class SettingsService {
     }
   }
 
-  // Update home WhatsApp settings
   static async updateHomeWhatsApp(whatsappData) {
     try {
       const currentWhatsApp = await this.getHomeWhatsApp();
       const updatedWhatsApp = { ...currentWhatsApp, ...whatsappData };
-      
+
       return await this.set("home_whatsapp", updatedWhatsApp);
     } catch (error) {
       throw error;
     }
   }
 
-  // Get home sections visibility/order settings
   static async getHomeSections() {
     try {
       const sections = await this.get("home_sections");
-      
+
       if (!sections) {
         return {
           hero_slider: { enabled: true, order: 1 },
@@ -467,7 +445,7 @@ class SettingsService {
           featured_albums: { enabled: true, order: 3 },
           testimonials: { enabled: true, order: 4 },
           dual_cta: { enabled: true, order: 5 },
-          whatsapp_float: { enabled: true, order: 0 }
+          whatsapp_float: { enabled: true, order: 0 },
         };
       }
 
@@ -477,19 +455,17 @@ class SettingsService {
     }
   }
 
-  // Update home sections settings
   static async updateHomeSections(sectionsData) {
     try {
       const currentSections = await this.getHomeSections();
       const updatedSections = { ...currentSections, ...sectionsData };
-      
+
       return await this.set("home_sections", updatedSections);
     } catch (error) {
       throw error;
     }
   }
 
-  // Get all home settings at once
   static async getAllHomeSettings() {
     try {
       const [
@@ -500,7 +476,7 @@ class SettingsService {
         testimonials,
         whatsapp,
         sections,
-        siteMeta
+        siteMeta,
       ] = await Promise.all([
         this.getHomeSlider(),
         this.getHomeAbout(),
@@ -509,7 +485,7 @@ class SettingsService {
         this.getHomeTestimonials(),
         this.getHomeWhatsApp(),
         this.getHomeSections(),
-        this.getSiteMeta()
+        this.getSiteMeta(),
       ]);
 
       return {
@@ -520,27 +496,27 @@ class SettingsService {
         home_testimonials: testimonials,
         home_whatsapp: whatsapp,
         home_sections: sections,
-        site_meta: siteMeta
+        site_meta: siteMeta,
       };
     } catch (error) {
       throw error;
     }
   }
 
-  // Update get public to include all home settings
   static async getPublic() {
     try {
       const publicKeys = [
         "whatsapp_owner",
-        "social_links", 
+        "contact_info",
+        "social_links",
         "site_meta",
         "home_slider",
         "home_about",
-        "home_cta", 
+        "home_cta",
         "home_albums",
         "home_testimonials",
         "home_whatsapp",
-        "home_sections"
+        "home_sections",
       ];
 
       return await this.getMultiple(publicKeys);
@@ -549,9 +525,6 @@ class SettingsService {
     }
   }
 
-  // ... باقي الدوال الموجودة ...
-  
-  // إعادة تصدير الدوال الموجودة
   static async get(key) {
     try {
       const setting = await db("settings").where("key", key).first();
@@ -725,7 +698,7 @@ class SettingsService {
             image: "/images/macrame-cover.jpg",
           },
           frames: {
-            title: "براويز رائعة التصميم", 
+            title: "براويز رائعة التصميم",
             subtitle: "براويز فنية تضفي جمالاً لمنزلك",
             button_text: "شاهد البراويز",
             image: "/images/frames-cover.jpg",
@@ -784,9 +757,6 @@ class SettingsService {
   }
 }
 
-// إضافة هذه السطور في نهاية ملف server/src/module/settings/service.js
-
-// Export named functions
 export const get = SettingsService.get.bind(SettingsService);
 export const set = SettingsService.set.bind(SettingsService);
 export const getMultiple = SettingsService.getMultiple.bind(SettingsService);
@@ -796,7 +766,6 @@ export const getAllHomeSettings =
 export const setMultiple = SettingsService.setMultiple.bind(SettingsService);
 export const getPublic = SettingsService.getPublic.bind(SettingsService);
 
-// Home specific methods
 export const getHomeAbout = SettingsService.getHomeAbout.bind(SettingsService);
 export const updateHomeAbout =
   SettingsService.updateHomeAbout.bind(SettingsService);
@@ -820,7 +789,6 @@ export const getHomeSections =
 export const updateHomeSections =
   SettingsService.updateHomeSections.bind(SettingsService);
 
-// Existing methods
 export const getWhatsAppOwner =
   SettingsService.getWhatsAppOwner.bind(SettingsService);
 export const getSocialLinks =

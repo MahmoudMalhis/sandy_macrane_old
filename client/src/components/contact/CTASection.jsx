@@ -9,15 +9,14 @@ import {
   Headphones,
   Timer,
 } from "lucide-react";
+import { openWhatsApp } from "../../utils/whatsapp";
 
 const CTASection = ({ isVisible, contactInfo }) => {
-  const handleWhatsAppClick = () => {
-    const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
-    const whatsappUrl = `https://wa.me/${
-      contactInfo.whatsapp
-    }?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
-  };
+   const handleWhatsAppClick = () => {
+     const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
+     openWhatsApp(contactInfo?.whatsapp, message);
+   };
+
 
   return (
     <motion.div

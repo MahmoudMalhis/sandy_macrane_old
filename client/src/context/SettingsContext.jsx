@@ -22,11 +22,13 @@ export function SettingsProvider({ children }) {
         setSettings({
           whatsapp_owner: response.data.whatsapp_owner,
           email: response.data.contact_info?.email,
-          phone: response.data.contact_info?.phone,
+          phone:
+            response.data.contact_info?.whatsapp ||
+            response.data.whatsapp_owner ||
+            "",
           address: response.data.contact_info?.address,
           social_links: response.data.social_links,
           site_meta: response.data.site_meta,
-          // أضف باقي الحقول حسب الحاجة
         });
       }
     } catch (err) {

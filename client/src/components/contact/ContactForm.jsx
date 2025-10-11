@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { contactAPI } from "../../api/contact"; // ⭐ NEW IMPORT
 import { toast } from "react-hot-toast"; // ⭐ NEW IMPORT
+import { openWhatsApp } from "../../utils/whatsapp";
 
 const ContactForm = ({ contactInfo }) => {
   const [sending, setSending] = useState(false);
@@ -60,11 +61,8 @@ const ContactForm = ({ contactInfo }) => {
   };
 
   const handleWhatsAppClick = () => {
-    const whatsappUrl = `https://wa.me/${contactInfo.whatsapp.replace(
-      /[^0-9]/g,
-      ""
-    )}?text=${encodeURIComponent("مرحباً، أود التواصل معكم")}`;
-    window.open(whatsappUrl, "_blank");
+    const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
+    openWhatsApp(contactInfo?.whatsapp, message);
   };
 
   return (

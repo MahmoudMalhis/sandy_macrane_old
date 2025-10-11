@@ -10,15 +10,13 @@ import {
   Facebook,
   Instagram,
 } from "lucide-react";
+import { openWhatsApp } from "../../utils/whatsapp";
 
 const ContactInfoCards = ({ isVisible, contactInfo }) => {
-  const handleWhatsAppClick = () => {
-    const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
-    const whatsappUrl = `https://wa.me/${
-      contactInfo.whatsapp
-    }?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
-  };
+   const handleWhatsAppClick = () => {
+     const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
+     openWhatsApp(contactInfo?.whatsapp, message);
+   };
 
   const handleEmailClick = () => {
     window.location.href = `mailto:${contactInfo.email}?subject=استفسار من موقع ساندي مكرمية`;

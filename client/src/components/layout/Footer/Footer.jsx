@@ -144,7 +144,6 @@ export default function Footer() {
                   </span>
                 </a>
               )}
-              {console.log(settings)}
               {settings?.email && (
                 <a
                   href={`mailto:${settings.email}`}
@@ -213,37 +212,6 @@ export default function Footer() {
                   </a>
                 )}
               </div>
-            </div>
-
-            {/* Newsletter Subscription */}
-            <div>
-              <h4 className="text-lg font-bold mb-3 text-pink">
-                اشترك في النشرة البريدية
-              </h4>
-              <p className="text-gray-400 text-xs mb-3">
-                احصل على آخر التحديثات والعروض الخاصة
-              </p>
-              <form onSubmit={handleNewsletterSubmit} className="space-y-2">
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="بريدك الإلكتروني"
-                    required
-                    className="flex-1 px-3 py-2 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink focus:border-transparent text-sm text-white placeholder-gray-400"
-                    dir="rtl"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isSubscribing}
-                    className="bg-gradient-to-r from-pink to-purple px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center"
-                    aria-label="إرسال"
-                  >
-                    <Send size={18} />
-                  </button>
-                </div>
-              </form>
             </div>
           </motion.div>
         </motion.div>

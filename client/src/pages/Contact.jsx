@@ -28,57 +28,35 @@ const Contact = () => {
 
         setContactInfo({
           whatsapp:
-            settings.contact_info?.whatsapp ||
-            settings.whatsapp_owner ||
-            "970599123456",
-          email: settings.contact_info?.email || "sandy@example.com",
-          address: settings.contact_info?.address || "نابلس، فلسطين",
+            settings.contact_info?.phone ||
+            settings.whatsapp_owner,
+          email: settings.contact_info?.email,
+          address: settings.contact_info?.address,
           workingHours: {
             weekdays:
-              settings.contact_info?.working_hours?.weekdays ||
-              "الأحد - الخميس: 9:00 ص - 9:00 م",
+              settings.contact_info?.working_hours?.weekdays,
             weekend:
-              settings.contact_info?.working_hours?.weekend ||
-              "الجمعة - السبت: 12:00 ظ - 6:00 م",
+              settings.contact_info?.working_hours?.weekend ,
           },
           social: {
             facebook:
               settings.contact_info?.social?.facebook ||
-              settings.social_links?.facebook ||
-              "https://facebook.com/sandymacrame",
+              settings.social_links?.facebook ,
             instagram:
               settings.contact_info?.social?.instagram ||
-              settings.social_links?.instagram ||
-              "https://instagram.com/sandymacrame",
+              settings.social_links?.instagram ,
           },
         });
-      } else {
-        // Fallback to default data
-        setContactInfo(getDefaultContactInfo());
-      }
+      } 
     } catch (error) {
       console.error("Error loading contact data:", error);
-      // Use default data on error
-      setContactInfo(getDefaultContactInfo());
     } finally {
       setLoading(false);
       setIsVisible(true);
     }
   };
 
-  const getDefaultContactInfo = () => ({
-    whatsapp: "970599123456",
-    email: "sandy@example.com",
-    address: "نابلس، فلسطين",
-    workingHours: {
-      weekdays: "الأحد - الخميس: 9:00 ص - 9:00 م",
-      weekend: "الجمعة - السبت: 12:00 ظ - 6:00 م",
-    },
-    social: {
-      facebook: "https://facebook.com/sandymacrame",
-      instagram: "https://instagram.com/sandymacrame",
-    },
-  });
+ 
 
   if (loading || !contactInfo) {
     return <Loading />;
