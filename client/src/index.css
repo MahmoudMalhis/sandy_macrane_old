@@ -2,30 +2,31 @@
 @import "tailwindcss";
 
 @theme {
-    --color-purple: #8b5f8c;
-    --color-purple-hover: #7a5479;
-    --color-beige: #f5f1ed;
-    --color-pink: #d8a7c1;
-    --color-light-gray: #eaeaea;
-    --color-green: #a1b08c;
+  --color-purple: #8b5f8c;
+  --color-purple-hover: #7a5479;
+  --color-beige: #f5f1ed;
+  --color-pink: #d8a7c1;
+  --color-light-gray: #eaeaea;
+  --color-green: #a1b08c;
 }
 
 body {
-    font-family: 'Cairo', sans-serif;
-    direction: rtl;
-    min-height: 100vh;
+  font-family: 'Cairo', sans-serif;
+  direction: rtl;
+  min-height: 100vh;
 }
 
 button {
-    cursor: pointer;
+  cursor: pointer;
 }
 
-/* Custom Toast Animations */
+
 @keyframes enter {
   0% {
     transform: translateY(-100%) scale(0.9);
     opacity: 0;
   }
+
   100% {
     transform: translateY(0) scale(1);
     opacity: 1;
@@ -37,6 +38,7 @@ button {
     transform: translateY(0) scale(1);
     opacity: 1;
   }
+
   100% {
     transform: translateY(-100%) scale(0.9);
     opacity: 0;
@@ -49,4 +51,14 @@ button {
 
 .animate-leave {
   animation: leave 0.2s ease-in;
+}
+
+pre {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
 }

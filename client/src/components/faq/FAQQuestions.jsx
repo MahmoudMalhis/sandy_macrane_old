@@ -1,35 +1,118 @@
-/* eslint-disable no-unused-vars */
-// client/src/components/faq/FAQQuestions.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
   ChevronUp,
   HelpCircle,
-  Clock,
   DollarSign,
   Truck,
   Palette,
-  Ruler,
-  RefreshCw,
+  Clock,
   Shield,
-  MessageCircle,
+  RefreshCw,
   Star,
+  Ruler,
 } from "lucide-react";
 import Button from "../common/Button";
+import { settingsAPI } from "../../api/settings";
+import Loading from "../../utils/Loading";
 
-const FAQQuestions = ({ searchTerm, activeCategory }) => {
+const FAQQuestions = ({ searchTerm, activeCategory, onCountChange }) => {
   const [openQuestions, setOpenQuestions] = useState(new Set());
+  const [faqData, setFaqData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // بيانات الأسئلة الشائعة
-  const faqData = [
+  const categoryIcons = {
+    general: HelpCircle,
+    orders: Clock,
+    pricing: DollarSign,
+    shipping: Truck,
+    customization: Palette,
+    sizing: Ruler,
+    materials: Star,
+    care: Shield,
+    returns: RefreshCw,
+  };
+
+  useEffect(() => {
+    loadFAQData();
+  }, []);
+
+  useEffect(() => {
+    if (onCountChange) {
+      if (faqData.length === 0) {
+        console.log("⚠️ No data yet, setting to 0");
+        onCountChange(0, 0);
+      } else {
+        const filtered = faqData.filter((faq) => {
+          const matchesCategory =
+            activeCategory === "all" || faq.category === activeCategory;
+          const matchesSearch =
+            faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            faq.answer.toLowerCase().includes(searchTerm.toLowerCase());
+          return matchesCategory && matchesSearch;
+        });
+
+        onCountChange(filtered.length, faqData.length);
+      }
+    } else {
+      console.log("❌ No onCountChange callback provided!");
+    }
+  }, [faqData.length, activeCategory, searchTerm, onCountChange]);
+
+  const loadFAQData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await settingsAPI.getFAQSettingsPublic();
+
+      if (
+        response?.success &&
+        response?.data?.faqs &&
+        response.data.faqs.length > 0
+      ) {
+        const faqs = response.data.faqs.map((faq) => ({
+          ...faq,
+          icon: categoryIcons[faq.category] || HelpCircle,
+        }));
+        setFaqData(faqs);
+
+        if (onCountChange) {
+          onCountChange(faqs.length, faqs.length);
+        }
+      } else {
+        const defaultFaqs = getDefaultFAQs();
+        setFaqData(defaultFaqs);
+
+        if (onCountChange) {
+          onCountChange(defaultFaqs.length, defaultFaqs.length);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading FAQ data:", err);
+      setError("فشل في تحميل الأسئلة الشائعة");
+
+      const defaultFaqs = getDefaultFAQs();
+      setFaqData(defaultFaqs);
+
+      if (onCountChange) {
+        onCountChange(defaultFaqs.length, defaultFaqs.length);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getDefaultFAQs = () => [
     {
       id: 1,
       category: "general",
       icon: HelpCircle,
       question: "ما هي المكرمية وما الذي يميزها؟",
       answer:
-        "المكرمية هي فن قديم يعتمد على عقد الحبال والخيوط لإنشاء تصاميم جميلة. ما يميز منتجاتنا هو الجمع بين التقنيات التقليدية والتصاميم العصرية، مع استخدام خامات عالية الجودة لضمان المتانة والجمال.",
+        "المكرمية هي فن قديم يعتمد على عقد الحبال والخيوط لإنشاء تصاميم جميلة ومتينة. ما يميز منتجاتنا:\n• صناعة يدوية 100% بعناية فائقة\n• استخدام خامات عالية الجودة ومستدامة\n• تصاميم فريدة ومبتكرة\n• إمكانية التخصيص حسب الطلب\n• قطع فنية عملية تجمع بين الجمال والوظيفة",
     },
     {
       id: 2,
@@ -37,7 +120,7 @@ const FAQQuestions = ({ searchTerm, activeCategory }) => {
       icon: Clock,
       question: "كم يستغرق تنفيذ الطلب؟",
       answer:
-        "يعتمد وقت التنفيذ على نوع وحجم القطعة:\n• القطع البسيطة: 2-3 أيام\n• القطع المتوسطة: 4-7 أيام\n• القطع المعقدة أو الكبيرة: 1-2 أسبوع\n• التصاميم المخصصة: 3-14 يوم حسب التعقيد\n\nسنخبرك بالوقت المحدد عند تأكيد الطلب.",
+        "يعتمد وقت التنفيذ على نوع وحجم القطعة:\n• القطع البسيطة: 2-3 أيام\n• القطع المتوسطة: 4-7 أيام\n• القطع الكبيرة والمعقدة: 7-14 يوم\n• الطلبات المخصصة: نناقش المدة معك\n\nسنخبرك بالوقت المتوقع بالضبط عند تأكيد الطلب.",
     },
     {
       id: 3,
@@ -45,83 +128,10 @@ const FAQQuestions = ({ searchTerm, activeCategory }) => {
       icon: DollarSign,
       question: "كيف يتم حساب أسعار المنتجات؟",
       answer:
-        "تعتمد الأسعار على عدة عوامل:\n• حجم القطعة ومقاساتها\n• تعقيد التصميم والتفاصيل\n• نوع الخامات المستخدمة\n• الوقت المطلوب للتنفيذ\n• إضافات خاصة (خرز، ألوان مميزة، إلخ)\n\nنقدم عروض أسعار مجانية لجميع الطلبات.",
-    },
-    {
-      id: 4,
-      category: "shipping",
-      icon: Truck,
-      question: "ما هي خيارات الشحن والتوصيل المتاحة؟",
-      answer:
-        "نوفر عدة خيارات للتوصيل:\n• التوصيل المحلي في نابلس: مجاني للطلبات فوق 100 شيكل\n• التوصيل داخل فلسطين: 20 شيكل\n• التوصيل للضفة الغربية: 70 شيكل\n• الشحن الدولي: متاح حسب الوجهة (نتحمل التكلفة للطلبات الكبيرة)\n\nنستخدم خدمات شحن موثوقة مع إمكانية تتبع الطلب.",
-    },
-    {
-      id: 5,
-      category: "customization",
-      icon: Palette,
-      question: "هل يمكنني طلب تصميم مخصص؟",
-      answer:
-        "بالطبع! نتخصص في التصاميم المخصصة:\n• ارسل لنا صورة أو وصف للفكرة\n• سنقوم بإنشاء تصميم أولي مجاني\n• يمكن التعديل حتى الوصول للنتيجة المطلوبة\n• نراعي ألوان الديكور ومقاسات المساحة\n• يمكن إضافة أسماء أو تواريخ مميزة\n\nكل قطعة مخصصة فريدة ولا تتكرر.",
-    },
-    {
-      id: 6,
-      category: "sizing",
-      icon: Ruler,
-      question: "ما هي الأحجام المتاحة للمنتجات؟",
-      answer:
-        "نصنع جميع الأحجام حسب الطلب:\n• قطع صغيرة: 20×20 سم للديكورات الصغيرة\n• قطع متوسطة: 40×60 سم للطاولات والرفوف\n• قطع كبيرة: 80×100 سم للجدران\n• قطع جدارية كبيرة: حتى 150×200 سم\n• مقاسات خاصة: حسب مساحتك ومتطلباتك\n\nيمكننا قياس المساحة عندك إذا كنت في نابلس.",
-    },
-    {
-      id: 7,
-      category: "materials",
-      icon: Star,
-      question: "ما نوع الخامات التي تستخدمونها؟",
-      answer:
-        "نستخدم خامات عالية الجودة فقط:\n• خيط قطني طبيعي 100% - قوي ومقاوم\n• خيط الجوت الطبيعي - للمظهر الريفي\n• خيط النايلون المقاوم - للاستخدام الخارجي\n• خرز طبيعي وخشبي - للزينة\n• أصباغ طبيعية آمنة - لا تسبب حساسية\n\nجميع خاماتنا صديقة للبيئة وآمنة للأطفال.",
-    },
-    {
-      id: 8,
-      category: "care",
-      icon: Shield,
-      question: "كيف أعتني بقطع المكرمية؟",
-      answer:
-        "العناية بسيطة جداً:\n• نفض الغبار بفرشاة ناعمة أسبوعياً\n• تجنب التعرض المباشر لأشعة الشمس\n• في حالة الاتساخ: غسيل يدوي بماء بارد وصابون لطيف\n• التجفيف في الهواء بعيداً عن الحرارة\n• يمكن استخدام البخار لإزالة التجاعيد\n\nمع العناية المناسبة تدوم قطع المكرمية لسنوات طويلة.",
-    },
-    {
-      id: 9,
-      category: "returns",
-      icon: RefreshCw,
-      question: "ما هي سياسة الإرجاع والاستبدال؟",
-      answer:
-        "نضمن رضاك التام:\n• ضمان 30 يوم على جودة الصنع\n• استبدال مجاني في حالة العيوب\n• إمكانية التعديل إذا لم يناسب المقاس\n• استرداد كامل للقطع غير المخصصة خلال 7 أيام\n• للقطع المخصصة: نعمل معك لحل أي مشكلة\n\nرضاك أهم من الربح بالنسبة لنا.",
-    },
-    {
-      id: 10,
-      category: "general",
-      icon: MessageCircle,
-      question: "كيف يمكنني التواصل معكم؟",
-      answer:
-        "نحن متاحون لخدمتك:\n• واتساب: 970599123456 (متاح 24/7)\n• اتصال مباشر: نفس الرقم\n• البريد الإلكتروني: sandy@example.com\n• رسائل الموقع: عبر صفحة 'اتصل بنا'\n• زيارة شخصية: نابلس (بموعد مسبق)\n\nنرد على الرسائل عادة خلال ساعة واحدة.",
-    },
-    {
-      id: 11,
-      category: "orders",
-      icon: Clock,
-      question: "هل يمكنني تتبع طلبي؟",
-      answer:
-        "نعم، نوفر خدمة تتبع شاملة:\n• رسالة تأكيد فورية عند الطلب\n• تحديثات مرحلية أثناء التنفيذ\n• صور للقطعة قبل الشحن\n• رقم تتبع للشحنة\n• تنبيه عند وصول الطلب\n\nيمكنك أيضاً السؤال عن حالة طلبك في أي وقت.",
-    },
-    {
-      id: 12,
-      category: "pricing",
-      icon: DollarSign,
-      question: "هل تقدمون خصومات أو عروض خاصة؟",
-      answer:
-        "نعم، لدينا عروض منتظمة:\n• خصم 10% للطلبات الثانية\n• خصم 15% للطلبات فوق 500 شيكل\n• عروض مواسم (رمضان، الأعياد، العودة للمدارس)\n• خصم خاص للكميات (3 قطع فأكثر)\n• برنامج الولاء للعملاء المميزين\n\nتابعنا على وسائل التواصل لآخر العروض.",
+        "تعتمد الأسعار على عدة عوامل:\n• حجم القطعة ومقاساتها\n• تعقيد التصميم والتفاصيل\n• نوع الخامات المستخدمة\n• الوقت المستغرق في التنفيذ\n• إضافة تخصيصات خاصة\n\nنضمن لك أسعار تنافسية مقابل جودة عالية وعمل فني متقن.",
     },
   ];
 
-  // فلترة الأسئلة
   const filteredFAQs = faqData.filter((faq) => {
     const matchesCategory =
       activeCategory === "all" || faq.category === activeCategory;
@@ -132,7 +142,6 @@ const FAQQuestions = ({ searchTerm, activeCategory }) => {
     return matchesCategory && matchesSearch;
   });
 
-  // فتح/إغلاق السؤال
   const toggleQuestion = (questionId) => {
     const newOpenQuestions = new Set(openQuestions);
     if (newOpenQuestions.has(questionId)) {
@@ -143,19 +152,38 @@ const FAQQuestions = ({ searchTerm, activeCategory }) => {
     setOpenQuestions(newOpenQuestions);
   };
 
-  // فتح جميع الأسئلة
   const openAllQuestions = () => {
     setOpenQuestions(new Set(filteredFAQs.map((faq) => faq.id)));
   };
 
-  // إغلاق جميع الأسئلة
   const closeAllQuestions = () => {
     setOpenQuestions(new Set());
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-12">
+        <Loading />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto py-12">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+          <p className="text-red-600">{error}</p>
+          <Button onClick={loadFAQData} variant="secondary" className="mt-4">
+            إعادة المحاولة
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
-      {/* أزرار التحكم السريع */}
+      {/* Quick control buttons */}
       <div className="flex justify-end gap-2 mb-6">
         <button
           onClick={openAllQuestions}
@@ -172,7 +200,7 @@ const FAQQuestions = ({ searchTerm, activeCategory }) => {
         </button>
       </div>
 
-      {/* قائمة الأسئلة */}
+      {/* FAQ List */}
       {filteredFAQs.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
@@ -186,7 +214,6 @@ const FAQQuestions = ({ searchTerm, activeCategory }) => {
           <p className="text-gray-600 mb-6">
             جرب تغيير كلمات البحث أو اختيار فئة مختلفة
           </p>
-          <Button variant="secondary">إعادة تعيين البحث</Button>
         </motion.div>
       ) : (
         <div className="space-y-4">
@@ -203,6 +230,7 @@ const FAQQuestions = ({ searchTerm, activeCategory }) => {
                 <button
                   onClick={() => toggleQuestion(faq.id)}
                   className="w-full px-6 py-4 text-right focus:outline-none group"
+                  aria-expanded={openQuestions.has(faq.id)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
@@ -232,7 +260,7 @@ const FAQQuestions = ({ searchTerm, activeCategory }) => {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="px-6 pb-6">
+                      <div className="px-6 pb-6 pt-2">
                         <div className="bg-gray-50 rounded-lg p-4 border-r-4 border-purple">
                           <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                             {faq.answer}
@@ -245,20 +273,6 @@ const FAQQuestions = ({ searchTerm, activeCategory }) => {
               </motion.div>
             ))}
           </AnimatePresence>
-        </div>
-      )}
-
-      {/* معلومات إضافية */}
-      {filteredFAQs.length > 0 && (
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="flex items-center gap-2 mb-2">
-            <HelpCircle className="text-blue-600" size={20} />
-            <span className="font-semibold text-blue-800">نصيحة:</span>
-          </div>
-          <p className="text-blue-700 text-sm">
-            يمكنك فتح عدة أسئلة في نفس الوقت للمقارنة بين الإجابات. استخدم البحث
-            للعثور على معلومات محددة بسرعة.
-          </p>
         </div>
       )}
     </div>

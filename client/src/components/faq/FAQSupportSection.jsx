@@ -2,12 +2,37 @@
 // client/src/components/faq/FAQSupportSection.jsx
 import { motion } from "framer-motion";
 import { MessageCircle, Clock, Star } from "lucide-react";
+import { openWhatsApp } from "../../utils/whatsapp";
+import { useEffect } from "react";
+import { settingsAPI } from "../../api/settings";
+import { useState } from "react";
 
 const FAQSupportSection = ({ isVisible }) => {
-  const handleWhatsAppContact = () => {
-    const message = "مرحباً، لدي سؤال لم أجد إجابته في صفحة الأسئلة الشائعة";
-    const whatsappUrl = `https://wa.me/970599123456?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
+  const [contactInfo, setContactInfo] = useState(null);
+
+  useEffect(() => {
+    const loadContactInfo = async () => {
+      try {
+        const response = await settingsAPI.getPublic();
+
+        if (response?.success && response?.data) {
+          const whatsapp = response.data.contact_info?.whatsapp;
+
+          setContactInfo({
+            whatsapp: whatsapp,
+          });
+        }
+      } catch (error) {
+        console.error("Error loading contact info:", error);
+      }
+    };
+
+    loadContactInfo();
+  }, []);
+
+  const handleWhatsAppClick = () => {
+    const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
+    openWhatsApp(contactInfo?.whatsapp, message);
   };
 
   const handleContactPage = () => {
@@ -48,7 +73,7 @@ const FAQSupportSection = ({ isVisible }) => {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
-            onClick={handleWhatsAppContact}
+            onClick={handleWhatsAppClick}
             className="bg-white text-purple px-8 py-4 rounded-lg font-bold hover:bg-gray-100 transition-colors shadow-lg flex items-center justify-center gap-2 cursor-pointer"
           >
             <MessageCircle size={20} />

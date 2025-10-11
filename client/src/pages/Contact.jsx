@@ -23,31 +23,26 @@ const Contact = () => {
       const response = await settingsAPI.getPublic();
 
       if (response?.success) {
-        // Extract contact info from settings
         const settings = response.data;
 
         setContactInfo({
-          whatsapp:
-            settings.contact_info?.phone ||
-            settings.whatsapp_owner,
+          whatsapp: settings.contact_info?.phone || settings.whatsapp_owner,
           email: settings.contact_info?.email,
           address: settings.contact_info?.address,
           workingHours: {
-            weekdays:
-              settings.contact_info?.working_hours?.weekdays,
-            weekend:
-              settings.contact_info?.working_hours?.weekend ,
+            weekdays: settings.contact_info?.working_hours?.weekdays,
+            weekend: settings.contact_info?.working_hours?.weekend,
           },
           social: {
             facebook:
               settings.contact_info?.social?.facebook ||
-              settings.social_links?.facebook ,
+              settings.social_links?.facebook,
             instagram:
               settings.contact_info?.social?.instagram ||
-              settings.social_links?.instagram ,
+              settings.social_links?.instagram,
           },
         });
-      } 
+      }
     } catch (error) {
       console.error("Error loading contact data:", error);
     } finally {
@@ -55,8 +50,6 @@ const Contact = () => {
       setIsVisible(true);
     }
   };
-
- 
 
   if (loading || !contactInfo) {
     return <Loading />;

@@ -6,7 +6,7 @@ import {
   Heart,
   Calendar,
   Search as SearchIcon,
-  TrendingUp ,
+  TrendingUp,
   Camera,
 } from "lucide-react";
 import Button from "../../components/common/Button";
@@ -152,15 +152,6 @@ export default function AboutPageSettings() {
             </h1>
             <p className="text-gray-600">إدارة محتوى صفحة "من نحن" بالكامل</p>
           </div>
-
-          <Button
-            onClick={handlePreview}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Eye className="w-5 h-5" />
-            معاينة الصفحة
-          </Button>
         </div>
 
         {/* Tabs */}

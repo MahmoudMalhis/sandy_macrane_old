@@ -1,5 +1,4 @@
 // client/src/components/layout/Footer/Footer.jsx
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -10,29 +9,16 @@ import {
   Facebook,
   Heart,
   ExternalLink,
-  Send,
   MessageCircle,
 } from "lucide-react";
 import { useSettings } from "../../../context/SettingsContext";
 
 export default function Footer() {
   const { settings, loading } = useSettings();
-  const [email, setEmail] = useState("");
-  const [isSubscribing, setIsSubscribing] = useState(false);
 
   const cleanPhoneNumber = (phone) => {
     if (!phone) return "";
     return String(phone).replace(/\D/g, "");
-  };
-
-  const handleNewsletterSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubscribing(true);
-    setTimeout(() => {
-      setEmail("");
-      setIsSubscribing(false);
-      alert("شكراً لاشتراكك! سنبقيك على اطلاع بآخر أعمالنا.");
-    }, 1000);
   };
 
   const currentYear = new Date().getFullYear();
@@ -257,12 +243,12 @@ export default function Footer() {
           <div className="flex items-center gap-2 text-xs">
             <span className="text-gray-500">تطوير:</span>
             <a
-              href="https://www.linkedin.com/in/your-profile"
+              href=""
               target="_blank"
               rel="noopener noreferrer"
               className="text-pink hover:text-purple transition-colors duration-300 font-semibold flex items-center gap-1 group"
             >
-              <span>محمد الطويل</span>
+              <span>محمود ملحيس</span>
               <ExternalLink
                 size={12}
                 className="opacity-0 group-hover:opacity-100 transition-opacity"

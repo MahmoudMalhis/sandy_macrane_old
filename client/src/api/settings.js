@@ -64,7 +64,12 @@ class SettingsAPI {
     });
   }
 
-  // FAQ settings
+  // FAQ settings - PUBLIC
+  async getFAQSettingsPublic() {
+    return this.makeRequest("/settings/faq/public");
+  }
+
+  // FAQ settings - ADMIN
   async getFAQSettings() {
     return this.makeRequest("/settings/admin/faq");
   }

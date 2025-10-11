@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -5,7 +6,6 @@ import {
   Save,
   HelpCircle,
   Plus,
-  Minus,
   Eye,
   Edit,
   Trash2,
@@ -17,6 +17,8 @@ import {
   RefreshCw,
   Star,
   Ruler,
+  Check,
+  X,
 } from "lucide-react";
 import Button from "../../components/common/Button";
 import Loading from "../../utils/LoadingSettings";
@@ -85,25 +87,25 @@ export default function FAQManagement() {
 
   const getDefaultFAQs = () => [
     {
-      id: 1,
+      id: Date.now() + 1,
       category: "general",
       question: "ما هي المكرمية وما الذي يميزها؟",
       answer:
-        "المكرمية هي فن قديم يعتمد على عقد الحبال والخيوط لإنشاء تصاميم جميلة...",
+        "المكرمية هي فن قديم يعتمد على عقد الحبال والخيوط لإنشاء تصاميم جميلة ومتينة. ما يميز منتجاتنا:\n• صناعة يدوية 100% بعناية فائقة\n• استخدام خامات عالية الجودة ومستدامة\n• تصاميم فريدة ومبتكرة\n• إمكانية التخصيص حسب الطلب\n• قطع فنية عملية تجمع بين الجمال والوظيفة",
     },
     {
-      id: 2,
+      id: Date.now() + 2,
       category: "orders",
       question: "كم يستغرق تنفيذ الطلب؟",
       answer:
-        "يعتمد وقت التنفيذ على نوع وحجم القطعة:\n• القطع البسيطة: 2-3 أيام\n• القطع المتوسطة: 4-7 أيام...",
+        "يعتمد وقت التنفيذ على نوع وحجم القطعة:\n• القطع البسيطة: 2-3 أيام\n• القطع المتوسطة: 4-7 أيام\n• القطع الكبيرة والمعقدة: 7-14 يوم\n• الطلبات المخصصة: نناقش المدة معك\n\nسنخبرك بالوقت المتوقع بالضبط عند تأكيد الطلب.",
     },
     {
-      id: 3,
+      id: Date.now() + 3,
       category: "pricing",
       question: "كيف يتم حساب أسعار المنتجات؟",
       answer:
-        "تعتمد الأسعار على عدة عوامل:\n• حجم القطعة ومقاساتها\n• تعقيد التصميم والتفاصيل...",
+        "تعتمد الأسعار على عدة عوامل:\n• حجم القطعة ومقاساتها\n• تعقيد التصميم والتفاصيل\n• نوع الخامات المستخدمة\n• الوقت المستغرق في التنفيذ\n• إضافة تخصيصات خاصة\n\nنضمن لك أسعار تنافسية مقابل جودة عالية وعمل فني متقن.",
     },
   ];
 
@@ -120,7 +122,7 @@ export default function FAQManagement() {
       }
     } catch (error) {
       console.error("Error saving FAQ settings:", error);
-      toast.error("فشل في حفظ الإعدادات");
+      toast.error(error.message || "فشل في حفظ الإعدادات");
     } finally {
       setSaving(false);
     }
@@ -134,7 +136,7 @@ export default function FAQManagement() {
       answer: "",
     };
     append(newFAQ);
-    setEditingIndex(fields.length); // Edit the new item
+    setEditingIndex(fields.length); // Edit the new item immediately
   };
 
   const deleteFAQ = (index) => {
@@ -175,19 +177,11 @@ export default function FAQManagement() {
               إدارة الأسئلة الشائعة
             </h1>
             <p className="text-gray-600">
-              إدارة الأسئلة والأجوبة الشائعة للموقع
+              إدارة الأسئلة والأجوبة الشائعة للموقع ({fields.length} سؤال)
             </p>
           </div>
 
           <div className="flex gap-2">
-            <Button
-              onClick={handlePreview}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Eye size={18} />
-              معاينة الصفحة
-            </Button>
             <Button onClick={addNewFAQ} className="flex items-center gap-2">
               <Plus size={18} />
               إضافة سؤال جديد
@@ -196,7 +190,36 @@ export default function FAQManagement() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* FAQ List */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl shadow p-4 border-l-4 border-purple">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">إجمالي الأسئلة</p>
+                  <p className="text-2xl font-bold text-purple">
+                    {fields.length}
+                  </p>
+                </div>
+                <HelpCircle className="w-10 h-10 text-purple opacity-20" />
+              </div>
+            </div>
+
+          </div>
+          <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+            <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5" />
+              نصائح لكتابة أسئلة شائعة فعالة:
+            </h3>
+            <ul className="space-y-2 text-blue-700">
+              <li>• استخدم لغة واضحة ومفهومة بعيداً عن المصطلحات المعقدة</li>
+              <li>• اجعل الأسئلة محددة وليست عامة جداً</li>
+              <li>• قدم إجابات شاملة ومفيدة مع أمثلة عملية</li>
+              <li>• استخدم النقاط (•) لتنظيم المعلومات وسهولة القراءة</li>
+              <li>• حدّث الأسئلة بانتظام بناءً على استفسارات العملاء</li>
+              <li>• رتب الأسئلة حسب الأهمية والتكرار</li>
+              <li>• أضف معلومات الاتصال في الإجابات عند الحاجة</li>
+            </ul>
+          </div>
+
           <div className="space-y-4">
             {fields.map((field, index) => {
               const CategoryIcon = getCategoryIcon(
@@ -207,39 +230,59 @@ export default function FAQManagement() {
               return (
                 <div
                   key={field.id}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden"
+                  className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-transparent hover:border-purple transition-colors"
                 >
                   {/* FAQ Header */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
                     <div className="flex items-center gap-3">
-                      <CategoryIcon className="text-purple" size={20} />
+                      <CategoryIcon className="text-purple" size={22} />
                       <span className="font-medium text-gray-700">
                         {getCategoryName(watch(`faqs.${index}.category`))}
                       </span>
-                      <span className="text-gray-500">•</span>
+                      <span className="text-gray-400">•</span>
                       <span className="text-sm text-gray-600">
                         السؤال رقم {index + 1}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditingIndex(isEditing ? null : index)
-                        }
-                        className={`p-2 rounded-lg transition-colors ${
-                          isEditing
-                            ? "bg-green-500 text-white hover:bg-green-600"
-                            : "bg-blue-500 text-white hover:bg-blue-600"
-                        }`}
-                      >
-                        <Edit size={16} />
-                      </button>
+                      {isEditing ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setEditingIndex(null)}
+                            className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                            title="حفظ التعديلات"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingIndex(null);
+                              // Reset to original values if needed
+                            }}
+                            className="p-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                            title="إلغاء"
+                          >
+                            <X size={16} />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingIndex(index)}
+                          className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                          title="تعديل"
+                        >
+                          <Edit size={16} />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => deleteFAQ(index)}
                         className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        title="حذف"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -267,6 +310,11 @@ export default function FAQManagement() {
                               </option>
                             ))}
                           </select>
+                          {errors.faqs?.[index]?.category && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.faqs[index].category.message}
+                            </p>
+                          )}
                         </div>
 
                         {/* Question */}
@@ -277,6 +325,14 @@ export default function FAQManagement() {
                           <input
                             {...register(`faqs.${index}.question`, {
                               required: "السؤال مطلوب",
+                              minLength: {
+                                value: 10,
+                                message: "السؤال يجب أن يكون 10 أحرف على الأقل",
+                              },
+                              maxLength: {
+                                value: 500,
+                                message: "السؤال يجب ألا يتجاوز 500 حرف",
+                              },
                             })}
                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
                             placeholder="اكتب السؤال هنا..."
@@ -286,6 +342,10 @@ export default function FAQManagement() {
                               {errors.faqs[index].question.message}
                             </p>
                           )}
+                          <p className="text-sm text-gray-500 mt-1">
+                            {watch(`faqs.${index}.question`)?.length || 0} / 500
+                            حرف
+                          </p>
                         </div>
 
                         {/* Answer */}
@@ -296,9 +356,17 @@ export default function FAQManagement() {
                           <textarea
                             {...register(`faqs.${index}.answer`, {
                               required: "الإجابة مطلوبة",
+                              minLength: {
+                                value: 20,
+                                message: "الإجابة يجب أن تكون 20 حرف على الأقل",
+                              },
+                              maxLength: {
+                                value: 5000,
+                                message: "الإجابة يجب ألا تتجاوز 5000 حرف",
+                              },
                             })}
                             rows={6}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent resize-none"
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent resize-y"
                             placeholder="اكتب الإجابة هنا..."
                           />
                           {errors.faqs?.[index]?.answer && (
@@ -307,7 +375,8 @@ export default function FAQManagement() {
                             </p>
                           )}
                           <p className="text-sm text-gray-500 mt-1">
-                            يمكنك استخدام النقاط بالشكل التالي: • النقطة الأولى
+                            {watch(`faqs.${index}.answer`)?.length || 0} / 5000
+                            حرف • يمكنك استخدام \n للفقرات • استخدم • للنقاط
                           </p>
                         </div>
                       </div>
@@ -344,7 +413,6 @@ export default function FAQManagement() {
               </div>
             )}
           </div>
-
           {/* Save Button */}
           {fields.length > 0 && (
             <div className="flex justify-end pt-6 border-t bg-white rounded-xl shadow-lg p-6">
@@ -354,25 +422,11 @@ export default function FAQManagement() {
                 className="px-8 py-3 text-lg"
               >
                 <Save size={20} className="ml-2" />
-                حفظ جميع الأسئلة الشائعة
+                حفظ جميع الأسئلة الشائعة ({fields.length})
               </Button>
             </div>
           )}
         </form>
-
-        {/* Tips Section */}
-        <div className="mt-8 bg-blue-50 rounded-xl p-6 border border-blue-200">
-          <h3 className="text-lg font-semibold text-blue-800 mb-4">
-            نصائح لكتابة أسئلة شائعة فعالة:
-          </h3>
-          <ul className="space-y-2 text-blue-700">
-            <li>• استخدم لغة واضحة ومفهومة</li>
-            <li>• اجعل الأسئلة محددة وليست عامة جداً</li>
-            <li>• قدم إجابات شاملة ومفيدة</li>
-            <li>• استخدم النقاط لتنظيم المعلومات</li>
-            <li>• حدّث الأسئلة بانتظام بناءً على استفسارات العملاء</li>
-          </ul>
-        </div>
       </div>
     </div>
   );

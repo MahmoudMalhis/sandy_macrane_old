@@ -572,6 +572,88 @@ class SettingsController {
       });
     }
   }
+
+  static async getFAQSettings(req, res) {
+    try {
+      const faqs = await get("faq_settings");
+
+      res.json({
+        success: true,
+        data: faqs || { faqs: [] },
+      });
+    } catch (error) {
+      logError("Get FAQ settings failed", { error: error.message });
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch FAQ settings",
+      });
+    }
+  }
+
+  static async updateFAQSettings(req, res) {
+    try {
+      const faqData = req.body;
+
+      if (!faqData.faqs || !Array.isArray(faqData.faqs)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid FAQ data structure",
+        });
+      }
+
+      for (const faq of faqData.faqs) {
+        if (!faq.question || !faq.answer || !faq.category) {
+          return res.status(400).json({
+            success: false,
+            message: "Each FAQ must have question, answer, and category",
+          });
+        }
+      }
+
+      const result = await _set("faq_settings", faqData);
+
+      logInfo("FAQ settings updated", {
+        updatedBy: req.user?.email || "unknown",
+        count: faqData.faqs.length,
+      });
+
+      res.json({
+        success: true,
+        message: "FAQ settings updated successfully",
+        data: result,
+      });
+    } catch (error) {
+      logError("Update FAQ settings failed", {
+        updatedBy: req.user?.email || "unknown",
+        error: error.message,
+      });
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to update FAQ settings",
+      });
+    }
+  }
+
+  static async getFAQSettingsPublic(req, res) {
+    try {
+      const faqs = await get("faq_settings");
+
+      const publicFaqs =
+        faqs?.faqs?.filter((faq) => faq.status !== "draft") || faqs?.faqs || [];
+
+      res.json({
+        success: true,
+        data: { faqs: publicFaqs },
+      });
+    } catch (error) {
+      logError("Get public FAQ settings failed", { error: error.message });
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch FAQ settings",
+      });
+    }
+  }
 }
 
 export const getPublic = SettingsController.getPublic;
@@ -596,5 +678,8 @@ export const updateAboutSEO = SettingsController.updateAboutSEO;
 export const updateAllAboutSections = SettingsController.updateAllAboutSections;
 export const updateAboutStats = SettingsController.updateAboutStats;
 export const updateContactInfo = SettingsController.updateContactInfo;
+export const getFAQSettings = SettingsController.getFAQSettings;
+export const updateFAQSettings = SettingsController.updateFAQSettings;
+export const getFAQSettingsPublic = SettingsController.getFAQSettingsPublic;
 
 export default SettingsController;

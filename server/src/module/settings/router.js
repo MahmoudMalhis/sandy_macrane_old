@@ -22,7 +22,10 @@ import {
   updateAllAboutSections,
   updateAboutWorkshop,
   updateAboutStats,
-  updateContactInfo
+  updateContactInfo,
+  getFAQSettings,
+  updateFAQSettings,
+  getFAQSettingsPublic,
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";
@@ -266,10 +269,23 @@ const aboutHeroValidation = [
 ];
 
 const aboutStoryValidation = [
-  body("title").trim().notEmpty().withMessage("Title is required"),
-  body("content").trim().notEmpty().withMessage("Content is required"),
-  body("image").optional().isURL().withMessage("Invalid image URL"),
-  body("highlights").optional().isArray(),
+  body("title").optional({ checkFalsy: true }).trim(),
+  body("content").optional({ checkFalsy: true }).trim(),
+  body("image")
+    .optional({ checkFalsy: true })
+    .trim()
+    .custom((value) => {
+      if (!value || value === "" || value.trim() === "") return true;
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Invalid image URL");
+      }
+    }),
+  body("highlights").optional({ checkFalsy: true }).isArray(),
+  body("highlights.*.text").optional({ checkFalsy: true }).trim(),
+  body("highlights.*.icon").optional({ checkFalsy: true }).trim(),
 ];
 
 const aboutValuesValidation = [
@@ -311,6 +327,39 @@ const aboutStatsValidation = [
   body("items.*.number").trim().notEmpty().withMessage("Number is required"),
   body("items.*.label").trim().notEmpty().withMessage("Label is required"),
   body("items.*.icon").optional().trim(),
+];
+
+const faqValidation = [
+  body("faqs").isArray().withMessage("FAQs must be an array"),
+  body("faqs.*.question")
+    .trim()
+    .notEmpty()
+    .withMessage("Question is required")
+    .isLength({ max: 500 })
+    .withMessage("Question must not exceed 500 characters"),
+  body("faqs.*.answer")
+    .trim()
+    .notEmpty()
+    .withMessage("Answer is required")
+    .isLength({ max: 5000 })
+    .withMessage("Answer must not exceed 5000 characters"),
+  body("faqs.*.category")
+    .trim()
+    .notEmpty()
+    .withMessage("Category is required")
+    .isIn([
+      "general",
+      "orders",
+      "pricing",
+      "shipping",
+      "customization",
+      "sizing",
+      "materials",
+      "care",
+      "returns",
+    ])
+    .withMessage("Invalid category"),
+  body("faqs.*.id").optional(),
 ];
 
 router.get("/public", getPublic);
@@ -411,6 +460,10 @@ router.put(
   validate,
   updateAboutStats
 );
+
+router.get("/faq/public", getFAQSettingsPublic);
+router.get("/admin/faq", authGuard, getFAQSettings);
+router.put("/admin/faq", authGuard, faqValidation, validate, updateFAQSettings);
 
 router.put("/admin/contact-info", updateContactInfo);
 

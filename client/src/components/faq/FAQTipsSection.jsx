@@ -2,6 +2,7 @@
 // client/src/components/faq/FAQTipsSection.jsx
 import { motion } from "framer-motion";
 import { Palette } from "lucide-react";
+import ApplyNow from "../ApplyNow";
 
 const FAQTipsSection = ({ isVisible }) => {
   const tips = [
@@ -85,13 +86,16 @@ const FAQTipsSection = ({ isVisible }) => {
 
         <div className="text-center mt-8 pt-6 border-t border-gray-200">
           <p className="text-gray-600 mb-4">هل أعجبتك هذه النصائح؟</p>
-          <button
-            onClick={handleBrowseProducts}
-            className="bg-purple text-white px-6 py-3 rounded-lg hover:bg-purple-hover transition-colors inline-flex items-center gap-2 cursor-pointer"
-          >
-            <Palette size={18} />
-            تصفح منتجاتنا الآن
-          </button>
+          <div className="flex justify-center items-center">
+            <ApplyNow className="rounded-lg ml-6 px-8 py-4 " />
+            <button
+              onClick={handleBrowseProducts}
+              className="bg-transparent border-2 border-purple text-purple px-8 py-4 rounded-lg font-bold hover:bg-purple hover:text-white transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Palette size={18} />
+              تصفح منتجاتنا الآن
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

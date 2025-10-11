@@ -17,6 +17,7 @@ const AlbumsAdmin = lazy(() => import("./pages/admin/AlbumsAdmin"));
 const TestimonialsAdmin = lazy(() => import("./pages/admin/TestimonialsAdmin"));
 const InquiriesAdmin = lazy(() => import("./pages/admin/InquiriesAdmin"));
 const GeneralSettings = lazy(() => import("./pages/admin/GeneralSettings"));
+const FAQManagement = lazy(() => import("./pages/admin/FAQManagement"));
 const ContactMessagesAdmin = lazy(() =>
   import("./pages/admin/ContactMessagesAdmin")
 );
@@ -93,6 +94,7 @@ export default function App() {
                     />
                     <Route path="settings" element={<GeneralSettings />} />
                     <Route path="about-page" element={<AboutPageSettings />} />
+                    <Route path="faq" element={<FAQManagement />} />
                   </Route>
 
                   {/* 404 Page */}
