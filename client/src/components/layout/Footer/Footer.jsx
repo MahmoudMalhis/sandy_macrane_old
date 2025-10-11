@@ -1,5 +1,5 @@
 // client/src/components/layout/Footer/Footer.jsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -13,33 +13,21 @@ import {
   Send,
   MessageCircle,
 } from "lucide-react";
-import { settingsAPI } from "../../../api/settings";
+import { useSettings } from "../../../context/SettingsContext";
 
 export default function Footer() {
-  const [settings, setSettings] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { settings, loading } = useSettings();
   const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const data = await settingsAPI.getPublic();
-        setSettings(data);
-      } catch (error) {
-        console.error("Error fetching settings:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSettings();
-  }, []);
+  const cleanPhoneNumber = (phone) => {
+    if (!phone) return "";
+    return String(phone).replace(/\D/g, "");
+  };
 
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
     setIsSubscribing(true);
-    // TODO: Implement newsletter subscription API call
     setTimeout(() => {
       setEmail("");
       setIsSubscribing(false);
@@ -59,7 +47,6 @@ export default function Footer() {
     );
   }
 
-  // Animation variants for footer sections
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -142,9 +129,8 @@ export default function Footer() {
             <div className="space-y-3">
               {settings?.whatsapp_owner && (
                 <a
-                  href={`https://wa.me/${settings.whatsapp_owner.replace(
-                    /\D/g,
-                    ""
+                  href={`https://wa.me/${cleanPhoneNumber(
+                    settings.whatsapp_owner
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -158,7 +144,7 @@ export default function Footer() {
                   </span>
                 </a>
               )}
-
+              {console.log(settings)}
               {settings?.email && (
                 <a
                   href={`mailto:${settings.email}`}

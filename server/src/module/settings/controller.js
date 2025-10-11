@@ -531,33 +531,47 @@ class SettingsController {
     }
   }
 
-static async updateContactInfo(req, res) {
-  try {
-    const { contact_info } = req.body;
+  static async updateContactInfo(req, res) {
+    try {
+      const { contact_info, whatsapp_owner, social_links } = req.body;
 
-    await _set("contact_info", contact_info);
+      if (contact_info) {
+        await _set("contact_info", contact_info);
+      }
 
-    logInfo("Contact info updated", {
-      updatedBy: req.user?.email || "unknown",
-    });
+      if (whatsapp_owner) {
+        await _set("whatsapp_owner", whatsapp_owner);
+      }
 
-    res.json({
-      success: true,
-      message: "Contact info updated successfully",
-      data: contact_info,
-    });
-  } catch (error) {
-    logError("Update contact info failed", {
-      updatedBy: req.user?.email || "unknown",
-      error: error.message,
-    });
+      if (social_links) {
+        await _set("social_links", social_links);
+      }
 
-    res.status(500).json({
-      success: false,
-      message: "Failed to update contact info",
-    });
+      logInfo("Contact info updated", {
+        updatedBy: req.user?.email || "unknown",
+        hasContactInfo: !!contact_info,
+        hasWhatsApp: !!whatsapp_owner,
+        hasSocialLinks: !!social_links,
+      });
+
+      res.json({
+        success: true,
+        message: "Settings updated successfully",
+        data: { contact_info, whatsapp_owner, social_links },
+      });
+    } catch (error) {
+      logError("Update contact info failed", {
+        updatedBy: req.user?.email || "unknown",
+        error: error.message,
+      });
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to update settings",
+        error: error.message,
+      });
+    }
   }
-}
 }
 
 export const getPublic = SettingsController.getPublic;

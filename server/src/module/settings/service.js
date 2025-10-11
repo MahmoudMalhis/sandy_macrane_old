@@ -114,6 +114,7 @@ class SettingsService {
         "social_links",
         "site_meta",
         "home_slider",
+        "contact_info",
       ];
 
       return await this.getMultiple(publicKeys);
