@@ -1,403 +1,241 @@
+// client/src/components/ExportReports.jsx
 import { useState } from "react";
 import {
   Download,
   FileText,
   FileSpreadsheet,
-  Loader2,
-  Check,
-  X,
+  File,
+  CheckCircle,
 } from "lucide-react";
 
-/**
- * مكون تصدير التقارير بصيغ متعددة
- */
 export default function ExportReports({
-  data,
-  filename = "report",
-  title = "تقرير",
+  dataType = "general",
+  onExport,
+  customFileName,
 }) {
-  const [exporting, setExporting] = useState(false);
-  const [exportStatus, setExportStatus] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
 
-  /**
-   * تصدير إلى CSV
-   */
-  const exportToCSV = () => {
-    setExporting(true);
-    setExportStatus(null);
+  // خيارات التصدير
+  const exportFormats = [
+    {
+      id: "pdf",
+      name: "PDF",
+      icon: FileText,
+      color: "text-red-500",
+      description: "ملف PDF للطباعة والعرض",
+    },
+    {
+      id: "excel",
+      name: "Excel",
+      icon: FileSpreadsheet,
+      color: "text-green-500",
+      description: "جدول بيانات Excel",
+    },
+    {
+      id: "csv",
+      name: "CSV",
+      icon: File,
+      color: "text-blue-500",
+      description: "ملف CSV للتحليل",
+    },
+    {
+      id: "json",
+      name: "JSON",
+      icon: File,
+      color: "text-purple",
+      description: "بيانات JSON للمطورين",
+    },
+  ];
+
+  // التصدير
+  const handleExport = async (format) => {
+    setIsExporting(true);
+    setShowOptions(false);
 
     try {
-      if (!data || data.length === 0) {
-        throw new Error("لا توجد بيانات للتصدير");
-      }
+      const token = localStorage.getItem("authToken");
+      const fileName = customFileName || `report_${dataType}_${Date.now()}`;
 
-      // استخراج العناوين
-      const headers = Object.keys(data[0]);
+      // استدعاء API التصدير
+      const response = await fetch(
+        `/api/admin/export/${dataType}?format=${format}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      // تحويل البيانات إلى CSV
-      const csvContent = [
-        // إضافة BOM للدعم العربي
-        "\uFEFF",
-        // العناوين
-        headers.join(","),
-        // الصفوف
-        ...data.map((row) =>
-          headers
-            .map((header) => {
-              let value = row[header];
-              // معالجة القيم التي تحتوي على فواصل أو علامات اقتباس
-              if (
-                typeof value === "string" &&
-                (value.includes(",") || value.includes('"'))
-              ) {
-                value = `"${value.replace(/"/g, '""')}"`;
-              }
-              return value || "";
-            })
-            .join(",")
-        ),
-      ].join("\n");
+      if (!response.ok) throw new Error("فشل التصدير");
 
       // تحميل الملف
-      downloadFile(csvContent, `${filename}.csv`, "text/csv;charset=utf-8;");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${fileName}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
-      setExportStatus("success");
-      setTimeout(() => setExportStatus(null), 3000);
-    } catch (error) {
-      console.error("Export error:", error);
-      setExportStatus("error");
-      setTimeout(() => setExportStatus(null), 3000);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  /**
-   * تصدير إلى JSON
-   */
-  const exportToJSON = () => {
-    setExporting(true);
-    setExportStatus(null);
-
-    try {
-      if (!data || data.length === 0) {
-        throw new Error("لا توجد بيانات للتصدير");
+      // استدعاء callback إذا كان موجوداً
+      if (onExport) {
+        onExport(format);
       }
 
-      const jsonContent = JSON.stringify(data, null, 2);
-      downloadFile(
-        jsonContent,
-        `${filename}.json`,
-        "application/json;charset=utf-8;"
-      );
-
-      setExportStatus("success");
-      setTimeout(() => setExportStatus(null), 3000);
+      // عرض رسالة نجاح
+      showSuccessMessage();
     } catch (error) {
-      console.error("Export error:", error);
-      setExportStatus("error");
-      setTimeout(() => setExportStatus(null), 3000);
+      console.error("Error exporting:", error);
+      alert("حدث خطأ أثناء التصدير. حاول مرة أخرى.");
     } finally {
-      setExporting(false);
+      setIsExporting(false);
     }
   };
 
-  /**
-   * تصدير إلى HTML (للطباعة)
-   */
-  const exportToHTML = () => {
-    setExporting(true);
-    setExportStatus(null);
+  // عرض رسالة نجاح
+  const showSuccessMessage = () => {
+    const message = document.createElement("div");
+    message.className =
+      "fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-fade-in";
+    message.innerHTML = `
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      <span>تم التصدير بنجاح!</span>
+    `;
+    document.body.appendChild(message);
 
-    try {
-      if (!data || data.length === 0) {
-        throw new Error("لا توجد بيانات للتصدير");
-      }
-
-      const headers = Object.keys(data[0]);
-
-      const htmlContent = `
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 20px;
-            direction: rtl;
-            background: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #9333ea;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .meta {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th {
-            background: #9333ea;
-            color: white;
-            padding: 12px;
-            text-align: right;
-            font-weight: 600;
-        }
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #e5e5e5;
-            text-align: right;
-        }
-        tr:hover {
-            background: #f9f9f9;
-        }
-        tr:nth-child(even) {
-            background: #fafafa;
-        }
-        .footer {
-            margin-top: 30px;
-            text-align: center;
-            color: #999;
-            font-size: 12px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e5e5;
-        }
-        @media print {
-            body { background: white; }
-            .container { box-shadow: none; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>${title}</h1>
-        <div class="meta">
-            <p>تاريخ التقرير: ${new Date().toLocaleDateString("ar-SA")}</p>
-            <p>عدد السجلات: ${data.length}</p>
-        </div>
-        
-        <table>
-            <thead>
-                <tr>
-                    ${headers.map((h) => `<th>${h}</th>`).join("")}
-                </tr>
-            </thead>
-            <tbody>
-                ${data
-                  .map(
-                    (row) => `
-                    <tr>
-                        ${headers
-                          .map((h) => `<td>${row[h] || "-"}</td>`)
-                          .join("")}
-                    </tr>
-                `
-                  )
-                  .join("")}
-            </tbody>
-        </table>
-        
-        <div class="footer">
-            <p>تم إنشاء هذا التقرير بواسطة نظام ساندي مكرمية</p>
-        </div>
-    </div>
-</body>
-</html>
-      `;
-
-      downloadFile(htmlContent, `${filename}.html`, "text/html;charset=utf-8;");
-
-      setExportStatus("success");
-      setTimeout(() => setExportStatus(null), 3000);
-    } catch (error) {
-      console.error("Export error:", error);
-      setExportStatus("error");
-      setTimeout(() => setExportStatus(null), 3000);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  /**
-   * تصدير إلى Excel (باستخدام HTML table)
-   */
-  const exportToExcel = () => {
-    setExporting(true);
-    setExportStatus(null);
-
-    try {
-      if (!data || data.length === 0) {
-        throw new Error("لا توجد بيانات للتصدير");
-      }
-
-      const headers = Object.keys(data[0]);
-
-      const excelContent = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" 
-              xmlns:x="urn:schemas-microsoft-com:office:excel" 
-              xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
-          <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
-            th { background-color: #9333ea; color: white; font-weight: bold; }
-          </style>
-        </head>
-        <body dir="rtl">
-          <table>
-            <thead>
-              <tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr>
-            </thead>
-            <tbody>
-              ${data
-                .map(
-                  (row) => `
-                <tr>${headers
-                  .map((h) => `<td>${row[h] || ""}</td>`)
-                  .join("")}</tr>
-              `
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </body>
-        </html>
-      `;
-
-      downloadFile(
-        excelContent,
-        `${filename}.xls`,
-        "application/vnd.ms-excel;charset=utf-8;"
-      );
-
-      setExportStatus("success");
-      setTimeout(() => setExportStatus(null), 3000);
-    } catch (error) {
-      console.error("Export error:", error);
-      setExportStatus("error");
-      setTimeout(() => setExportStatus(null), 3000);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  /**
-   * دالة مساعدة لتحميل الملف
-   */
-  const downloadFile = (content, filename, mimeType) => {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  /**
-   * طباعة التقرير
-   */
-  const printReport = () => {
-    exportToHTML();
-    // بعد ثانية، فتح نافذة الطباعة
     setTimeout(() => {
-      window.print();
-    }, 1000);
+      message.remove();
+    }, 3000);
   };
 
   return (
-    <div className="flex flex-wrap gap-2" dir="rtl">
-      {/* زر CSV */}
+    <div className="relative">
+      {/* زر التصدير */}
       <button
-        onClick={exportToCSV}
-        disabled={exporting || !data || data.length === 0}
-        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        onClick={() => setShowOptions(!showOptions)}
+        disabled={isExporting}
+        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple to-pink text-white rounded-lg hover:opacity-90 transition-opacity duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {exporting ? (
-          <Loader2 className="animate-spin" size={18} />
+        {isExporting ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            <span>جاري التصدير...</span>
+          </>
         ) : (
-          <FileSpreadsheet size={18} />
+          <>
+            <Download size={20} />
+            <span>تصدير التقرير</span>
+          </>
         )}
-        <span>تصدير CSV</span>
       </button>
 
-      {/* زر Excel */}
-      <button
-        onClick={exportToExcel}
-        disabled={exporting || !data || data.length === 0}
-        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {exporting ? (
-          <Loader2 className="animate-spin" size={18} />
-        ) : (
-          <FileSpreadsheet size={18} />
-        )}
-        <span>تصدير Excel</span>
-      </button>
+      {/* خيارات التصدير */}
+      {showOptions && !isExporting && (
+        <>
+          {/* خلفية شفافة للإغلاق */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowOptions(false)}
+          ></div>
 
-      {/* زر JSON */}
-      <button
-        onClick={exportToJSON}
-        disabled={exporting || !data || data.length === 0}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {exporting ? (
-          <Loader2 className="animate-spin" size={18} />
-        ) : (
-          <FileText size={18} />
-        )}
-        <span>تصدير JSON</span>
-      </button>
+          {/* قائمة الخيارات */}
+          <div className="absolute left-0 mt-2 w-72 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 overflow-hidden">
+            <div className="p-3 bg-gradient-to-r from-purple to-pink border-b">
+              <h4 className="text-white font-semibold">اختر صيغة التصدير</h4>
+            </div>
 
-      {/* زر HTML/طباعة */}
-      <button
-        onClick={exportToHTML}
-        disabled={exporting || !data || data.length === 0}
-        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {exporting ? (
-          <Loader2 className="animate-spin" size={18} />
-        ) : (
-          <Download size={18} />
-        )}
-        <span>تصدير HTML</span>
-      </button>
-
-      {/* حالة التصدير */}
-      {exportStatus === "success" && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg animate-fadeIn">
-          <Check size={18} />
-          <span>تم التصدير بنجاح!</span>
-        </div>
-      )}
-
-      {exportStatus === "error" && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg animate-fadeIn">
-          <X size={18} />
-          <span>فشل التصدير</span>
-        </div>
+            <div className="p-2">
+              {exportFormats.map((format) => (
+                <button
+                  key={format.id}
+                  onClick={() => handleExport(format.id)}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-right"
+                >
+                  <div className={`${format.color} bg-gray-100 p-2 rounded-lg`}>
+                    <format.icon size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">{format.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {format.description}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
+  );
+}
+
+// مكون تصدير سريع (بدون خيارات)
+export function QuickExport({
+  dataType = "general",
+  format = "excel",
+  buttonText = "تصدير",
+  onExport,
+  className = "",
+}) {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const fileName = `report_${dataType}_${Date.now()}`;
+
+      const response = await fetch(
+        `/api/admin/export/${dataType}?format=${format}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("فشل التصدير");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${fileName}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      if (onExport) onExport(format);
+    } catch (error) {
+      console.error("Error exporting:", error);
+      alert("حدث خطأ أثناء التصدير");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={isExporting}
+      className={`flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+    >
+      {isExporting ? (
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple border-t-transparent"></div>
+      ) : (
+        <Download size={18} className="text-gray-600" />
+      )}
+      <span className="text-gray-700">
+        {isExporting ? "جاري التصدير..." : buttonText}
+      </span>
+    </button>
   );
 }

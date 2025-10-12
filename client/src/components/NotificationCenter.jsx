@@ -1,238 +1,276 @@
-import { useState, useEffect } from "react";
-import {
-  Bell,
-  X,
-  Check,
-  AlertCircle,
-  Info,
-  Star,
-  MessageSquare,
-  Package,
-} from "lucide-react";
+// client/src/components/NotificationCenter.jsx
+import { useEffect, useState } from "react";
+import { Bell, X, Check, AlertCircle, Info, CheckCircle } from "lucide-react";
 
-/**
- * مركز الإشعارات - عرض التنبيهات والأنشطة المهمة
- */
 export default function NotificationCenter() {
-  const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // جلب الإشعارات من الباك اند
   useEffect(() => {
     fetchNotifications();
-    // تحديث الإشعارات كل دقيقة
-    const interval = setInterval(fetchNotifications, 60000);
+    // تحديث الإشعارات كل 30 ثانية
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchNotifications = async () => {
     try {
-      // في التطبيق الحقيقي، استبدل هذا بـ API call
-      const mockNotifications = [
-        {
-          id: 1,
-          type: "review",
-          title: "تقييم جديد",
-          message: "تقييم جديد من سارة أحمد - 5 نجوم",
-          time: new Date(Date.now() - 5 * 60000),
-          read: false,
-          icon: Star,
-          color: "text-yellow-500",
-          bgColor: "bg-yellow-50",
+      setLoading(true);
+      const response = await fetch("/api/admin/notifications", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
-        {
-          id: 2,
-          type: "inquiry",
-          title: "استعلام جديد",
-          message: "استعلام من محمد خالد عن مكرمية جدارية",
-          time: new Date(Date.now() - 15 * 60000),
-          read: false,
-          icon: MessageSquare,
-          color: "text-blue-500",
-          bgColor: "bg-blue-50",
-        },
-        {
-          id: 3,
-          type: "order",
-          title: "طلب جديد",
-          message: "طلب جديد بقيمة 350 ريال",
-          time: new Date(Date.now() - 30 * 60000),
-          read: true,
-          icon: Package,
-          color: "text-green-500",
-          bgColor: "bg-green-50",
-        },
-        {
-          id: 4,
-          type: "alert",
-          title: "تنبيه",
-          message: "تذكير: 5 تقييمات تنتظر الموافقة",
-          time: new Date(Date.now() - 60 * 60000),
-          read: true,
-          icon: AlertCircle,
-          color: "text-orange-500",
-          bgColor: "bg-orange-50",
-        },
-      ];
+      });
 
-      setNotifications(mockNotifications);
-      setUnreadCount(mockNotifications.filter((n) => !n.read).length);
+      if (!response.ok) throw new Error("Failed to fetch notifications");
+
+      const data = await response.json();
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
     } catch (error) {
       console.error("Error fetching notifications:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const markAsRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
+  // تحديد نوع الأيقونة حسب نوع الإشعار
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case "success":
+        return <CheckCircle className="text-green-500" size={20} />;
+      case "warning":
+        return <AlertCircle className="text-orange-500" size={20} />;
+      case "error":
+        return <AlertCircle className="text-red-500" size={20} />;
+      default:
+        return <Info className="text-blue-500" size={20} />;
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
-    setUnreadCount(0);
+  // تحديد لون الخلفية حسب نوع الإشعار
+  const getNotificationBg = (type) => {
+    switch (type) {
+      case "success":
+        return "bg-green-50 border-green-200";
+      case "warning":
+        return "bg-orange-50 border-orange-200";
+      case "error":
+        return "bg-red-50 border-red-200";
+      default:
+        return "bg-blue-50 border-blue-200";
+    }
   };
 
-  const deleteNotification = (id) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
-    const notif = notifications.find((n) => n.id === id);
-    if (notif && !notif.read) {
+  // وضع علامة مقروء على إشعار
+  const markAsRead = async (notificationId) => {
+    try {
+      await fetch(`/api/admin/notifications/${notificationId}/read`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === notificationId ? { ...notif, read: true } : notif
+        )
+      );
       setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
     }
   };
 
-  const formatTime = (date) => {
-    const now = new Date();
-    const diff = Math.floor((now - date) / 1000); // بالثواني
+  // وضع علامة مقروء على جميع الإشعارات
+  const markAllAsRead = async () => {
+    try {
+      await fetch("/api/admin/notifications/read-all", {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
 
-    if (diff < 60) return "الآن";
-    if (diff < 3600) return `منذ ${Math.floor(diff / 60)} دقيقة`;
-    if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`;
-    return `منذ ${Math.floor(diff / 86400)} يوم`;
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, read: true }))
+      );
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  };
+
+  // حذف إشعار
+  const deleteNotification = async (notificationId) => {
+    try {
+      await fetch(`/api/admin/notifications/${notificationId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      setNotifications((prev) =>
+        prev.filter((notif) => notif.id !== notificationId)
+      );
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
+  };
+
+  // تنسيق الوقت
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - date) / 60000);
+
+    if (diffInMinutes < 1) return "الآن";
+    if (diffInMinutes < 60) return `منذ ${diffInMinutes} دقيقة`;
+    if (diffInMinutes < 1440)
+      return `منذ ${Math.floor(diffInMinutes / 60)} ساعة`;
+    return `منذ ${Math.floor(diffInMinutes / 1440)} يوم`;
   };
 
   return (
-    <div className="relative" dir="rtl">
+    <div className="relative">
       {/* زر الإشعارات */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+        className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
       >
-        <Bell size={24} />
+        <Bell size={24} className="text-gray-700" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
-      {/* بانل الإشعارات */}
+      {/* قائمة الإشعارات */}
       {isOpen && (
         <>
-          {/* Overlay */}
+          {/* خلفية شفافة للإغلاق */}
           <div
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
-          />
+          ></div>
 
-          {/* قائمة الإشعارات */}
-          <div className="absolute left-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-[600px] flex flex-col">
-            {/* Header */}
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-bold text-gray-900">الإشعارات</h3>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={20} />
-                </button>
+          {/* نافذة الإشعارات */}
+          <div className="absolute left-0 mt-2 w-96 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 max-h-[600px] overflow-hidden">
+            {/* رأس الإشعارات */}
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple to-pink">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">الإشعارات</h3>
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-xs text-white hover:underline flex items-center gap-1"
+                    >
+                      <Check size={14} />
+                      وضع علامة مقروء للكل
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="text-white hover:bg-white/20 rounded p-1"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
-
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                >
-                  تعليم الكل كمقروء
-                </button>
-              )}
             </div>
 
             {/* قائمة الإشعارات */}
-            <div className="flex-1 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 px-4">
-                  <Bell className="text-gray-300 mb-3" size={48} />
-                  <p className="text-gray-500 text-center">
-                    لا توجد إشعارات حالياً
-                  </p>
+            <div className="overflow-y-auto max-h-[500px]">
+              {loading ? (
+                <div className="p-8 text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple border-t-transparent"></div>
+                  <p className="mt-2 text-gray-600">جاري التحميل...</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <Bell size={48} className="mx-auto mb-3 text-gray-300" />
+                  <p>لا توجد إشعارات جديدة</p>
                 </div>
               ) : (
-                notifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                      !notif.read ? "bg-blue-50" : ""
-                    }`}
-                  >
-                    <div className="flex gap-3">
-                      {/* أيقونة */}
-                      <div
-                        className={`flex-shrink-0 w-10 h-10 ${notif.bgColor} rounded-lg flex items-center justify-center`}
-                      >
-                        <notif.icon className={notif.color} size={20} />
-                      </div>
-
-                      {/* المحتوى */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                              {notif.title}
-                            </h4>
-                            <p className="text-sm text-gray-600 line-clamp-2">
-                              {notif.message}
-                            </p>
-                          </div>
-
-                          {/* زر حذف */}
-                          <button
-                            onClick={() => deleteNotification(notif.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors"
-                          >
-                            <X size={16} />
-                          </button>
+                <div className="divide-y divide-gray-200">
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={`p-4 hover:bg-gray-50 transition-colors duration-200 ${
+                        !notification.read ? "bg-blue-50" : ""
+                      }`}
+                    >
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0 mt-1">
+                          {getNotificationIcon(notification.type)}
                         </div>
 
-                        {/* الوقت والحالة */}
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className="text-xs text-gray-500">
-                            {formatTime(notif.time)}
-                          </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <p
+                                className={`text-sm ${
+                                  !notification.read
+                                    ? "font-semibold text-gray-900"
+                                    : "text-gray-700"
+                                }`}
+                              >
+                                {notification.title}
+                              </p>
+                              <p className="text-xs text-gray-600 mt-1">
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-2">
+                                {formatTime(notification.createdAt)}
+                              </p>
+                            </div>
 
-                          {!notif.read && (
-                            <button
-                              onClick={() => markAsRead(notif.id)}
-                              className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
-                            >
-                              <Check size={12} />
-                              تعليم كمقروء
-                            </button>
-                          )}
+                            <div className="flex flex-col gap-1">
+                              {!notification.read && (
+                                <button
+                                  onClick={() => markAsRead(notification.id)}
+                                  className="text-purple hover:text-pink transition-colors"
+                                  title="وضع علامة مقروء"
+                                >
+                                  <Check size={16} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() =>
+                                  deleteNotification(notification.id)
+                                }
+                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                title="حذف"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
 
-            {/* Footer */}
+            {/* تذييل الإشعارات */}
             {notifications.length > 0 && (
               <div className="p-3 border-t border-gray-200 bg-gray-50">
-                <button className="w-full text-center text-sm text-purple-600 hover:text-purple-700 font-medium py-2">
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    // يمكن إضافة navigation إلى صفحة الإشعارات الكاملة
+                  }}
+                  className="w-full text-center text-sm text-purple hover:text-pink font-medium transition-colors"
+                >
                   عرض جميع الإشعارات
                 </button>
               </div>
@@ -243,101 +281,3 @@ export default function NotificationCenter() {
     </div>
   );
 }
-
-/**
- * مكون Toast للإشعارات المؤقتة
- */
-export const Toast = ({ message, type = "info", duration = 3000, onClose }) => {
-  const [isVisible, setIsVisible] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(onClose, 300);
-    }, duration);
-
-    return () => clearTimeout(timer);
-  }, [duration, onClose]);
-
-  const icons = {
-    success: {
-      Icon: Check,
-      color: "text-green-500",
-      bgColor: "bg-green-50",
-      borderColor: "border-green-200",
-    },
-    error: {
-      Icon: X,
-      color: "text-red-500",
-      bgColor: "bg-red-50",
-      borderColor: "border-red-200",
-    },
-    warning: {
-      Icon: AlertCircle,
-      color: "text-orange-500",
-      bgColor: "bg-orange-50",
-      borderColor: "border-orange-200",
-    },
-    info: {
-      Icon: Info,
-      color: "text-blue-500",
-      bgColor: "bg-blue-50",
-      borderColor: "border-blue-200",
-    },
-  };
-
-  const { Icon, color, bgColor, borderColor } = icons[type] || icons.info;
-
-  return (
-    <div
-      className={`fixed bottom-4 right-4 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${bgColor} ${borderColor} z-50 transition-all duration-300 ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-      }`}
-      dir="rtl"
-    >
-      <Icon className={color} size={20} />
-      <p className="text-sm font-medium text-gray-900">{message}</p>
-      <button
-        onClick={() => {
-          setIsVisible(false);
-          setTimeout(onClose, 300);
-        }}
-        className="text-gray-400 hover:text-gray-600"
-      >
-        <X size={16} />
-      </button>
-    </div>
-  );
-};
-
-/**
- * Hook لإدارة Toasts
- */
-export const useToast = () => {
-  const [toasts, setToasts] = useState([]);
-
-  const showToast = (message, type = "info", duration = 3000) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
-  };
-
-  const removeToast = (id) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
-
-  const ToastContainer = () => (
-    <>
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          duration={toast.duration}
-          onClose={() => removeToast(toast.id)}
-        />
-      ))}
-    </>
-  );
-
-  return { showToast, ToastContainer };
-};

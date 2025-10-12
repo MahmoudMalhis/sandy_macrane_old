@@ -1,25 +1,29 @@
+// server/src/module/admin/router.js
 import { Router } from "express";
-import { query } from "express-validator";
-import { getStats, getAnalytics, getSystemHealth } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
-import { validate } from "../../middlewares/validate.js";
+import AdminController from "./controller.js";
 
 const router = Router();
 
-// Analytics query validation
-const analyticsValidation = [
-  query("period")
-    .optional()
-    .isIn(["month", "quarter", "year"])
-    .withMessage("Period must be month, quarter, or year"),
-];
-
-// All admin routes require authentication
+// جميع routes تحتاج authentication
 router.use(authGuard);
 
-// Statistics routes
-router.get("/stats", getStats);
-router.get("/analytics", analyticsValidation, validate, getAnalytics);
-router.get("/system-health", getSystemHealth);
+// الإحصائيات
+router.get("/stats", AdminController.getStats);
+
+// الإشعارات
+router.get("/notifications", AdminController.getNotifications);
+router.patch("/notifications/:id/read", AdminController.markNotificationAsRead);
+router.patch(
+  "/notifications/read-all",
+  AdminController.markAllNotificationsAsRead
+);
+router.delete("/notifications/:id", AdminController.deleteNotification);
+
+// النشاطات
+router.get("/activities", AdminController.getActivities);
+
+// التصدير
+router.get("/export/:type", AdminController.exportData);
 
 export default router;
