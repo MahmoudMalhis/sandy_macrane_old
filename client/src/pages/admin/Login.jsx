@@ -33,7 +33,6 @@ export default function AdminLogin() {
     const checkSetup = async () => {
       try {
         const response = await authAPI.checkSetupStatus();
-        console.log("Setup check response:", response);
 
         const needsSetup = response.data?.needsSetup ?? false;
         setNeedsSetup(needsSetup);

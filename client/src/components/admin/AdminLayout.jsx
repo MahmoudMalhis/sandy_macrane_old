@@ -10,7 +10,6 @@ import {
   X,
   FileText,
   HelpCircle,
-  LayoutDashboard,
   Mail,
 } from "lucide-react";
 import useAuthStore from "../../api/useAuthStore";
@@ -26,13 +25,9 @@ export default function AdminLayout() {
   };
 
   const menuItems = [
+   
     {
       path: "/admin",
-      icon: <LayoutDashboard size={20} />,
-      label: "لوحة التحكم",
-    },
-    {
-      path: "/admin/home",
       icon: <Home size={20} />,
       label: "الصفحة الرئيسية",
     },

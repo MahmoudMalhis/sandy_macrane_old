@@ -9,7 +9,6 @@ const Testimonials = lazy(() => import("./pages/Testimonials"));
 const Contact = lazy(() => import("./pages/Contact"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const AlbumDetail = lazy(() => import("./pages/AlbumDetail"));
-const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const AdminSetup = lazy(() => import("./pages/admin/Setup"));
 const EmailVerification = lazy(() => import("./pages/admin/EmailVerification"));
 const AdminHomeSettings = lazy(() => import("./pages/admin/AdminHomeSettings"));
@@ -79,8 +78,7 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   >
-                    <Route index element={<Dashboard />} />
-                    <Route path="home" element={<AdminHomeSettings />} />
+                    <Route index element={<AdminHomeSettings />} />
                     <Route path="albums" element={<AlbumsAdmin />} />
                     <Route path="albums/:id/media" element={<MediaAdmin />} />
                     <Route
