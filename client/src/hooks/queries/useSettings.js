@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { settingsAPI, adminAPI } from "../../api/admin";
+import { adminAPI } from "../../api/admin";
+import { settingsAPI } from "../../api/settings";
 import { toast } from "react-hot-toast";
 
 export const settingsKeys = {
@@ -16,7 +17,7 @@ export const usePublicSettings = () => {
       if (!response.success) throw new Error("فشل في تحميل الإعدادات");
       return response.data;
     },
-    staleTime: 15 * 60 * 1000, // Settings don't change often
+    staleTime: 15 * 60 * 1000,
     cacheTime: 30 * 60 * 1000,
   });
 };

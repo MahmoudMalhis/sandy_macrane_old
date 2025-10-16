@@ -1,5 +1,5 @@
 // client/src/components/common/AlbumCard.jsx
-import { useState } from "react";
+import { memo, useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, Heart } from "lucide-react";
 import Badge from "./Badge";
@@ -7,7 +7,7 @@ import ApplyNow from "../ApplyNow";
 import { getAlbumUtils } from "../../utils/albumUtils";
 import { useLikes } from "../../hooks/useLikes";
 
-export default function AlbumCard({
+const AlbumCard = memo(function AlbumCard({
   album,
   index = 0,
   isVisible = true,
@@ -184,4 +184,6 @@ export default function AlbumCard({
       </div>
     </motion.div>
   );
-}
+});
+
+export default AlbumCard;

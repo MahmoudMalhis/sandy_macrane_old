@@ -33,7 +33,7 @@ class ReviewsService {
   static async getAll(filters = {}) {
     try {
       const {
-        status = "published",
+        status ,
         linked_album_id,
         search,
         author_name,

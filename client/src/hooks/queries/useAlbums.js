@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { albumsAPI, adminAPI } from "../../api/albums";
+import { adminAPI } from "../../api/admin";
+import { albumsAPI } from "../../api/albums";
 import { toast } from "react-hot-toast";
 
 export const albumsKeys = {
@@ -22,7 +23,8 @@ export const useAlbums = (filters = {}) => {
       const params = {
         page: filters.page || 1,
         limit: filters.limit || 12,
-        ...(filters.category && filters.category !== "all" && { category: filters.category }),
+        ...(filters.category &&
+          filters.category !== "all" && { category: filters.category }),
         ...(filters.search && { search: filters.search }),
         ...(filters.sort && { sort: filters.sort }),
       };
@@ -97,7 +99,8 @@ export const useCreateAlbum = () => {
   return useMutation({
     mutationFn: async (albumData) => {
       const response = await adminAPI.createAlbum(albumData);
-      if (!response.success) throw new Error(response.message || "فشل في إنشاء الألبوم");
+      if (!response.success)
+        throw new Error(response.message || "فشل في إنشاء الألبوم");
       return response.data;
     },
     onSuccess: () => {
@@ -119,12 +122,15 @@ export const useUpdateAlbum = () => {
   return useMutation({
     mutationFn: async ({ albumId, data }) => {
       const response = await adminAPI.updateAlbum(albumId, data);
-      if (!response.success) throw new Error(response.message || "فشل في تحديث الألبوم");
+      if (!response.success)
+        throw new Error(response.message || "فشل في تحديث الألبوم");
       return response.data;
     },
     onSuccess: (data, variables) => {
       // Update specific album cache
-      queryClient.invalidateQueries({ queryKey: albumsKeys.detail(variables.albumId) });
+      queryClient.invalidateQueries({
+        queryKey: albumsKeys.detail(variables.albumId),
+      });
       // Update lists
       queryClient.invalidateQueries({ queryKey: albumsKeys.lists() });
       // Update featured if applicable
@@ -146,7 +152,8 @@ export const useDeleteAlbum = () => {
   return useMutation({
     mutationFn: async (albumId) => {
       const response = await adminAPI.deleteAlbum(albumId);
-      if (!response.success) throw new Error(response.message || "فشل في حذف الألبوم");
+      if (!response.success)
+        throw new Error(response.message || "فشل في حذف الألبوم");
       return response;
     },
     onSuccess: () => {
@@ -168,7 +175,8 @@ export const useUpdateAlbumStatus = () => {
   return useMutation({
     mutationFn: async ({ albumId, status }) => {
       const response = await adminAPI.updateAlbum(albumId, { status });
-      if (!response.success) throw new Error(response.message || "فشل في تحديث الحالة");
+      if (!response.success)
+        throw new Error(response.message || "فشل في تحديث الحالة");
       return response.data;
     },
     onSuccess: () => {
@@ -190,12 +198,17 @@ export const useUploadAlbumMedia = () => {
   return useMutation({
     mutationFn: async ({ albumId, images }) => {
       const response = await adminAPI.uploadAlbumMedia(albumId, images);
-      if (!response.success) throw new Error(response.message || "فشل في رفع الصور");
+      if (!response.success)
+        throw new Error(response.message || "فشل في رفع الصور");
       return response.data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: albumsKeys.media(variables.albumId) });
-      queryClient.invalidateQueries({ queryKey: albumsKeys.detail(variables.albumId) });
+      queryClient.invalidateQueries({
+        queryKey: albumsKeys.media(variables.albumId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: albumsKeys.detail(variables.albumId),
+      });
       toast.success(`تم رفع ${data.length || 1} صورة بنجاح`);
     },
     onError: (error) => {
@@ -213,11 +226,14 @@ export const useDeleteAlbumMedia = () => {
   return useMutation({
     mutationFn: async ({ albumId, mediaId }) => {
       const response = await adminAPI.deleteAlbumMedia(albumId, mediaId);
-      if (!response.success) throw new Error(response.message || "فشل في حذف الصورة");
+      if (!response.success)
+        throw new Error(response.message || "فشل في حذف الصورة");
       return response;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: albumsKeys.media(variables.albumId) });
+      queryClient.invalidateQueries({
+        queryKey: albumsKeys.media(variables.albumId),
+      });
       toast.success("تم حذف الصورة");
     },
     onError: (error) => {
@@ -235,12 +251,17 @@ export const useSetAlbumCover = () => {
   return useMutation({
     mutationFn: async ({ albumId, mediaId }) => {
       const response = await adminAPI.setAlbumCover(albumId, mediaId);
-      if (!response.success) throw new Error(response.message || "فشل في تعيين الغلاف");
+      if (!response.success)
+        throw new Error(response.message || "فشل في تعيين الغلاف");
       return response;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: albumsKeys.detail(variables.albumId) });
-      queryClient.invalidateQueries({ queryKey: albumsKeys.media(variables.albumId) });
+      queryClient.invalidateQueries({
+        queryKey: albumsKeys.detail(variables.albumId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: albumsKeys.media(variables.albumId),
+      });
       toast.success("تم تعيين صورة الغلاف");
     },
     onError: (error) => {
@@ -248,4 +269,3 @@ export const useSetAlbumCover = () => {
     },
   });
 };
-

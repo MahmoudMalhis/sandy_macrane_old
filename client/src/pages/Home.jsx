@@ -1,51 +1,34 @@
-import { useState, useEffect } from "react";
-import { settingsAPI } from "../api/settings";
-import { albumsAPI } from "../api/albums";
-import { reviewsAPI } from "../api/reviews";
+import { useMemo } from "react";
 import HeroSlider from "../components/home/HeroSlider";
 import AboutTeaser from "../components/home/AboutTeaser";
 import FeaturedAlbums from "../components/home/FeaturedAlbums";
 import TestimonialsSlider from "../components/home/TestimonialsSlider";
 import DualCTA from "../components/home/DualCTA";
 import AIChatbot from "../components/home/AIChatbot";
-import { useApi } from "../hooks/useApi";
 import { useSEO } from "../hooks/useSEO";
 import Loading from "../utils/Loading";
 import Error from "../utils/Error";
+import { usePublicSettings } from "../hooks/queries/useSettings";
+import { useFeaturedAlbums } from "../hooks/queries/useAlbums";
+import { useFeaturedReviews } from "../hooks/queries/useReviews";
 
 export default function Home() {
-  const [seoData, setSeoData] = useState(null);
-  useSEO(seoData);
+  const { data: settings, isLoading: settingsLoading } = usePublicSettings();
+  const { data: albums, isLoading: albumsLoading } = useFeaturedAlbums(6);
+  const { data: reviews, isLoading: reviewsLoading } = useFeaturedReviews(4);
 
-  const { data: settings, loading: settingsLoading } = useApi(
-    () => settingsAPI.getPublic(),
-    [],
-    { immediate: true }
-  );
+  const seoData = useMemo(() => {
+    if (!settings?.site_meta) return null;
 
-  const { data: albums, loading: albumsLoading } = useApi(
-    () => albumsAPI.getFeatured(6),
-    [],
-    { immediate: true }
-  );
-
-  const { data: reviews, loading: reviewsLoading } = useApi(
-    () => reviewsAPI.getFeatured(4),
-    [],
-    { immediate: true }
-  );
-
-  const loading = settingsLoading || albumsLoading || reviewsLoading;
-
-  useEffect(() => {
-    if (settings?.site_meta) {
-      setSeoData({
-        title: settings.site_meta.title ,
-        description: settings.site_meta.description,
-        keywords: settings.site_meta.keywords,
-      });
-    }
+    return {
+      title: settings.site_meta.title,
+      description: settings.site_meta.description,
+      keywords: settings.site_meta.keywords,
+    };
   }, [settings]);
+
+  useSEO(seoData);
+  const loading = settingsLoading || albumsLoading || reviewsLoading;
 
   const getSliderData = () => {
     if (!settings?.home_slider) return [];
@@ -70,7 +53,7 @@ export default function Home() {
         image: slider.frames?.image,
         bgGradient: "from-green to-purple",
       },
-    ].filter((slide) => slide.title); // فلترة الشرائح التي تحتوي على عنوان
+    ].filter((slide) => slide.title);
   };
 
   const getSortedSections = () => {

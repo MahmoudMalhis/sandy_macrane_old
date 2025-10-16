@@ -1,137 +1,124 @@
-import { useState, useEffect, useCallback } from "react";
+// client/src/pages/Gallery.jsx - نسخة محسّنة
+
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Filter } from "lucide-react";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { Filter, Loader } from "lucide-react";
 import AlbumCard from "../components/common/AlbumCard";
 import ApplyNow from "../components/ApplyNow";
 import useAppStore from "../store/useAppStore";
 import Loading from "../utils/Loading";
-import { albumsAPI } from "../api/albums";
-import { toast } from "react-hot-toast";
+import { useInfiniteAlbums } from "../hooks/queries/useInfiniteAlbums";
 import { prepareAlbumImages } from "../utils/albumUtils";
+import Error from "../utils/Error";
 
 export default function Gallery() {
   const navigate = useNavigate();
-  const [albums, setAlbums] = useState([]);
-  const [filteredAlbums, setFilteredAlbums] = useState([]);
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 6,
-    total: 0,
-    pages: 0,
-  });
-  const [loadingMore, setLoadingMore] = useState(false);
   const { openLightbox } = useAppStore();
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const loadMoreRef = useRef(null);
 
-  // ✅ دالة fetchAlbums بدون dependencies خطيرة
-  const fetchAlbums = async (reset = false) => {
-    try {
-      if (reset) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
-
-      const params = {
-        page: reset ? 1 : pagination.page,
-        limit: pagination.limit,
-        category: activeFilter !== "all" ? activeFilter : undefined,
-        search: searchTerm || undefined,
-        sort: "created_at",
-      };
-
-      const response = await albumsAPI.getAll(params);
-
-      if (response.success) {
-        if (reset) {
-          setAlbums(response.data);
-          setFilteredAlbums(response.data);
-          setPagination({
-            page: 1,
-            limit: response.pagination.limit,
-            total: response.pagination.total,
-            pages: response.pagination.pages,
-          });
-        } else {
-          setAlbums((prev) => [...prev, ...response.data]);
-          setFilteredAlbums((prev) => [...prev, ...response.data]);
-          setPagination((prev) => ({
-            ...prev,
-            page: response.pagination.page,
-            total: response.pagination.total,
-            pages: response.pagination.pages,
-          }));
-        }
-      } else {
-        toast.error("فشل في تحميل المعرض");
-      }
-    } catch (error) {
-      console.error("Error fetching albums:", error);
-      toast.error("حدث خطأ في تحميل البيانات");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  };
-
-  // ✅ useEffect واحد فقط للتحميل الأولي وتغيير الفلاتر (مع debounce)
+  // ✅ Debounce البحث (بدون useTransition - غير ضروري هنا)
   useEffect(() => {
-    const timeoutId = setTimeout(
-      () => {
-        fetchAlbums(true);
-      },
-      searchTerm ? 500 : 0
-    ); // debounce فقط للبحث
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [activeFilter, searchTerm]);
+  }, [searchInput]);
 
-  // ✅ useEffect منفصل للـ pagination فقط
+  // ✅ Memoize filters لمنع re-creation غير ضرورية
+  const filters = useMemo(
+    () => ({
+      limit: 6,
+      category: activeFilter !== "all" ? activeFilter : undefined,
+      search: debouncedSearch || undefined,
+      sort: "created_at",
+    }),
+    [activeFilter, debouncedSearch]
+  );
+
+  // ✅ استخدام Hook المُحسّن
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isError,
+  } = useInfiniteAlbums(filters);
+
+  // ✅ Memoize albums list
+  const albums = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap((page) => page.data);
+  }, [data]);
+
+  const totalCount = data?.pages?.[0]?.pagination?.total || 0;
+
+  // ✅ Intersection Observer لـ Infinite Scroll
   useEffect(() => {
-    if (pagination.page > 1) {
-      fetchAlbums(false);
-    }
-  }, [pagination.page]);
+    if (!loadMoreRef.current || !hasNextPage || isFetchingNextPage) return;
 
-  // ✅ دالة loadMore بسيطة
-  const loadMore = () => {
-    if (pagination.page < pagination.pages && !loadingMore) {
-      setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
-    }
-  };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-  const filters = [
-    { key: "all", label: "الكل", count: pagination.total },
-    {
-      key: "macrame",
-      label: "مكرمية",
-      count: albums.filter((a) => a.category === "macrame").length,
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // ✅ Memoized callbacks
+  const handleFilterChange = useCallback((filter) => {
+    setActiveFilter(filter);
+  }, []);
+
+  const handleImageClick = useCallback(
+    (album, imageIndex = 0) => {
+      const images = prepareAlbumImages(album);
+      openLightbox(images, imageIndex);
     },
-    {
-      key: "frame",
-      label: "براويز",
-      count: albums.filter((a) => a.category === "frame").length,
+    [openLightbox]
+  );
+
+  const handleAlbumClick = useCallback(
+    (album) => {
+      if (!album.slug) {
+        console.error("Album missing slug:", album);
+        return;
+      }
+      navigate(`/album/${album.slug}`);
     },
+    [navigate]
+  );
+
+  const handleResetFilters = useCallback(() => {
+    setSearchInput("");
+    setDebouncedSearch("");
+    setActiveFilter("all");
+  }, []);
+
+  const categories = [
+    { id: "all", label: "الكل", icon: "🎨" },
+    { id: "macrame", label: "مكرمية", icon: "🧵" },
+    { id: "frame", label: "براويز", icon: "🖼️" },
   ];
 
-  const handleImageClick = (album, imageIndex = 0) => {
-    const images = prepareAlbumImages(album);
-    openLightbox(images, imageIndex);
-  };
-
-  const handleAlbumClick = (album) => {
-    if (!album.slug) {
-      console.error("Album missing slug:", album);
-      return;
-    }
-    navigate(`/album/${album.slug}`);
-  };
-
-  if (loading && albums.length === 0) {
+  // ✅ Loading state فقط للتحميل الأولي
+  if (isLoading && albums.length === 0) {
     return <Loading />;
+  }
+
+  if (isError) {
+    return <Error />;
   }
 
   return (
@@ -165,27 +152,34 @@ export default function Gallery() {
               <input
                 type="text"
                 placeholder="ابحث في المعرض..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple focus:outline-none transition-colors"
               />
+              {/* ✅ مؤشر البحث النشط */}
+              {searchInput !== debouncedSearch && (
+                <p className="text-sm text-gray-500 mt-2 flex items-center gap-2">
+                  <Loader className="animate-spin" size={14} />
+                  جاري البحث...
+                </p>
+              )}
             </div>
 
             {/* أزرار الفلترة */}
             <div className="flex gap-2 flex-wrap justify-center">
               <Filter className="text-purple my-auto" size={20} />
-              {filters.map((filter) => (
+              {categories.map((category) => (
                 <button
-                  key={filter.key}
-                  onClick={() => setActiveFilter(filter.key)}
+                  key={category.id}
+                  onClick={() => handleFilterChange(category.id)}
                   className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-                    activeFilter === filter.key
+                    activeFilter === category.id
                       ? "bg-purple text-white shadow-lg"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
-                  {filter.label}
-                  <span className="mr-2 text-sm">({filter.count})</span>
+                  <span className="mr-2 text-sm">{category.icon}</span>
+                  {category.label}
                 </button>
               ))}
             </div>
@@ -194,13 +188,13 @@ export default function Gallery() {
 
         {/* عدد النتائج */}
         <div className="text-center text-gray-600 mb-4">
-          عرض {filteredAlbums.length} من أصل {pagination.total} منتج
+          عرض {albums.length} من أصل {totalCount} منتج
         </div>
       </div>
 
       {/* شبكة الألبومات */}
       <div className="container mx-auto px-4">
-        {filteredAlbums.length === 0 ? (
+        {albums.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -211,58 +205,111 @@ export default function Gallery() {
               <h3 className="text-2xl font-bold text-gray-800 mb-2">
                 لا توجد نتائج
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 mb-4">
                 لم نتمكن من العثور على ألبومات تطابق بحثك
               </p>
+
+              {/* ✅ عرض معلومات البحث الحالي */}
+              {(debouncedSearch || activeFilter !== "all") && (
+                <div className="bg-gray-50 rounded-lg p-4 mb-4 text-sm text-right">
+                  <p className="text-gray-700">
+                    {debouncedSearch && (
+                      <span className="block mb-1">
+                        🔍 البحث عن: <strong>{debouncedSearch}</strong>
+                      </span>
+                    )}
+                    {activeFilter !== "all" && (
+                      <span className="block">
+                        📂 الفئة:{" "}
+                        <strong>
+                          {categories.find((c) => c.id === activeFilter)?.label}
+                        </strong>
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+
               <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setActiveFilter("all");
-                }}
-                className="mt-4 px-6 py-2 bg-purple text-white rounded-lg hover:bg-purple-hover transition-colors"
+                onClick={handleResetFilters}
+                className="px-6 py-2 bg-purple text-white rounded-lg hover:bg-purple-hover transition-colors"
               >
                 إعادة تعيين البحث
               </button>
             </div>
           </motion.div>
         ) : (
-          <AnimatePresence mode="wait">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredAlbums.map((album, index) => (
-                <AlbumCard
-                  key={album.id}
-                  album={album}
-                  index={index}
-                  isVisible={true}
-                  onImageClick={handleImageClick}
-                  onAlbumClick={handleAlbumClick}
-                  variant="gallery"
-                />
-              ))}
-            </div>
-          </AnimatePresence>
-        )}
-
-        {/* زر تحميل المزيد */}
-        {pagination.page < pagination.pages && filteredAlbums.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center mt-12"
-          >
-            <button
-              onClick={loadMore}
-              disabled={loadingMore}
-              className="px-8 py-4 bg-purple text-white rounded-full hover:bg-purple-hover transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          <LayoutGroup>
+            <motion.div
+              layout
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
-              {loadingMore ? "جاري التحميل..." : "تحميل المزيد"}
-            </button>
-          </motion.div>
+              <AnimatePresence mode="popLayout">
+                {albums.map((album, index) => (
+                  <motion.div
+                    key={album.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{
+                      duration: 0.3,
+                      delay: index * 0.05,
+                      layout: { duration: 0.3 },
+                    }}
+                  >
+                    <AlbumCard
+                      album={album}
+                      index={index}
+                      isVisible={true}
+                      onImageClick={handleImageClick}
+                      onAlbumClick={handleAlbumClick}
+                      variant="gallery"
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Infinite Scroll Trigger */}
+            {hasNextPage && (
+              <div
+                ref={loadMoreRef}
+                className="flex justify-center items-center py-8 mt-8"
+              >
+                {isFetchingNextPage ? (
+                  <div className="flex items-center gap-3 text-purple">
+                    <Loader className="animate-spin" size={24} />
+                    <span className="text-lg font-medium">
+                      جاري تحميل المزيد...
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-gray-400 text-sm">
+                    مرر للأسفل لتحميل المزيد
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* End of Results */}
+            {!hasNextPage && albums.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-8 mt-8"
+              >
+                <div className="inline-block px-6 py-3 bg-gray-100 rounded-full text-gray-600">
+                  ✨ تم عرض جميع المنتجات ({totalCount})
+                </div>
+              </motion.div>
+            )}
+          </LayoutGroup>
         )}
       </div>
 
       {/* قسم الدعوة للعمل */}
-      {filteredAlbums.length > 0 && (
+      {albums.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
