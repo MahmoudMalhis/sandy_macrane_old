@@ -6,9 +6,7 @@ import { Helmet } from "react-helmet-async";
 import {
   Heart,
   Award,
-  Users,
   Clock,
-  Palette,
   Star,
   Target,
   Lightbulb,
@@ -20,37 +18,60 @@ import { adminAPI } from "../api/admin";
 import ApplyNow from "../components/ApplyNow";
 import Loading from "../utils/LoadingSettings";
 import { aboutPageAPI } from "../api/aboutPage";
+import { settingsAPI } from "../api/settings";
+import { openWhatsApp } from "../utils/whatsapp";
 
 export default function About() {
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [aboutData, setAboutData] = useState(null);
+  const [contactInfo, setContactInfo] = useState(null);
+
 
   useEffect(() => {
     setIsVisible(true);
     loadAboutData();
   }, []);
 
-  const loadAboutData = async () => {
-    try {
-      setLoading(true);
-      const [aboutResponse, statsResponse] = await Promise.all([
-        aboutPageAPI.getPublic(),
-        adminAPI.getStats().catch(() => null),
-      ]);
-      if (aboutResponse?.success) {
-        setAboutData(aboutResponse.data || getDefaultAboutData());
-      } else {
-        setAboutData(getDefaultAboutData());
-      }
-    } catch (error) {
-      console.error("Error loading about data:", error);
-      setAboutData(getDefaultAboutData());
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadAboutData = async () => {
+  try {
+    setLoading(true);
 
+    // جلب بيانات الصفحة وبيانات الاتصال معاً
+    const [aboutResponse, statsResponse, settingsResponse] = await Promise.all([
+      aboutPageAPI.getPublic(),
+      adminAPI.getStats().catch(() => null),
+      settingsAPI.getPublic().catch(() => null), // ⭐ إضافة جديدة
+    ]);
+
+    // معالجة بيانات الصفحة
+    if (aboutResponse?.success) {
+      setAboutData(aboutResponse.data || getDefaultAboutData());
+    } else {
+      setAboutData(getDefaultAboutData());
+    }
+
+    // ⭐ معالجة بيانات الاتصال (جديد)
+    if (settingsResponse?.success) {
+      setContactInfo({
+        whatsapp:
+          settingsResponse.data.contact_info?.whatsapp ||
+          settingsResponse.data.whatsapp_owner,
+      });
+    }
+  } catch (error) {
+    console.error("Error loading about data:", error);
+    setAboutData(getDefaultAboutData());
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleWhatsAppClick = () => {
+  const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
+  openWhatsApp(contactInfo?.whatsapp, message);
+  };
+  
   const getDefaultAboutData = () => ({
     about_hero: {
       title: "قصة **ساندي** \\n مع المكرمية",
@@ -509,10 +530,9 @@ export default function About() {
                   <ApplyNow>اطلب تصميماً مخصصاً</ApplyNow>
 
                   <button
-                    onClick={() =>
-                      window.open("https://wa.me/970599123456", "_blank")
-                    }
-                    className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-purple px-8 py-4 rounded-full font-bold transition-all duration-300 cursor-pointer"
+                    onClick={handleWhatsAppClick}
+                    disabled={!contactInfo?.whatsapp}
+                    className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-purple px-8 py-4 rounded-full font-bold transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     تحدث معنا مباشرة
                   </button>

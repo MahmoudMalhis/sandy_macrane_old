@@ -19,82 +19,87 @@ export default function Gallery() {
   const [searchTerm, setSearchTerm] = useState("");
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 12,
+    limit: 6,
     total: 0,
     pages: 0,
   });
   const [loadingMore, setLoadingMore] = useState(false);
   const { openLightbox } = useAppStore();
 
-  useEffect(() => {
-    fetchAlbums(true);
-  }, [activeFilter, searchTerm]);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchTerm !== "") {
-        fetchAlbums(true);
-      } else if (searchTerm === "" && albums.length === 0) {
-        fetchAlbums();
+  // ✅ دالة fetchAlbums بدون dependencies خطيرة
+  const fetchAlbums = async (reset = false) => {
+    try {
+      if (reset) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
       }
-    }, 500);
 
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+      const params = {
+        page: reset ? 1 : pagination.page,
+        limit: pagination.limit,
+        category: activeFilter !== "all" ? activeFilter : undefined,
+        search: searchTerm || undefined,
+        sort: "created_at",
+      };
 
-  const fetchAlbums = useCallback(
-    async (reset = false) => {
-      try {
+      const response = await albumsAPI.getAll(params);
+
+      if (response.success) {
         if (reset) {
-          setLoading(true);
-          setPagination((prev) => ({ ...prev, page: 1 }));
-        } else if (pagination.page > 1) {
-          setLoadingMore(true);
-        } else {
-          setLoading(true);
-        }
-
-        const params = {
-          page: reset ? 1 : pagination.page,
-          limit: pagination.limit,
-          category: activeFilter !== "all" ? activeFilter : undefined,
-          search: searchTerm || undefined,
-          sort: "created_at",
-        };
-
-        const response = await albumsAPI.getAll(params);
-
-        if (response.success) {
-          const newAlbums = reset
-            ? response.data
-            : [...albums, ...response.data];
-
-          setAlbums(newAlbums);
-          setFilteredAlbums(newAlbums);
+          setAlbums(response.data);
+          setFilteredAlbums(response.data);
           setPagination({
-            page: response.pagination.page,
+            page: 1,
             limit: response.pagination.limit,
             total: response.pagination.total,
             pages: response.pagination.pages,
           });
         } else {
-          toast.error("فشل في تحميل المعرض");
+          setAlbums((prev) => [...prev, ...response.data]);
+          setFilteredAlbums((prev) => [...prev, ...response.data]);
+          setPagination((prev) => ({
+            ...prev,
+            page: response.pagination.page,
+            total: response.pagination.total,
+            pages: response.pagination.pages,
+          }));
         }
-      } catch (error) {
-        console.error("Error fetching albums:", error);
-        toast.error("حدث خطأ في تحميل البيانات");
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
+      } else {
+        toast.error("فشل في تحميل المعرض");
       }
-    },
-    [activeFilter, pagination.page, pagination.limit]
-  );
+    } catch (error) {
+      console.error("Error fetching albums:", error);
+      toast.error("حدث خطأ في تحميل البيانات");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
 
+  // ✅ useEffect واحد فقط للتحميل الأولي وتغيير الفلاتر (مع debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(
+      () => {
+        fetchAlbums(true);
+      },
+      searchTerm ? 500 : 0
+    ); // debounce فقط للبحث
+
+    return () => clearTimeout(timeoutId);
+  }, [activeFilter, searchTerm]);
+
+  // ✅ useEffect منفصل للـ pagination فقط
+  useEffect(() => {
+    if (pagination.page > 1) {
+      fetchAlbums(false);
+    }
+  }, [pagination.page]);
+
+  // ✅ دالة loadMore بسيطة
   const loadMore = () => {
     if (pagination.page < pagination.pages && !loadingMore) {
       setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
-      setTimeout(fetchAlbums, 100);
     }
   };
 

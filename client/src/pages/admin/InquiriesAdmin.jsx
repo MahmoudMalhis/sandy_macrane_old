@@ -1,92 +1,53 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
+import {
+  useInquiries,
+  useInquiriesStats,
+  useUpdateInquiryStatus,
+} from "../../hooks/queries/useInquiries";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
   Eye,
   Phone,
-  Mail,
   Calendar,
   User,
-  Image as ImageIcon,
   Search,
   CheckCircle,
   Clock,
   AlertTriangle,
   X,
   FileText,
-  ExternalLink,
 } from "lucide-react";
-import { toast } from "react-hot-toast";
 import { inquiriesAPI } from "../../api/inquiries.js";
 import Badge from "../../components/common/Badge";
 import Loading from "../../utils/LoadingSettings";
 
 export default function InquiriesAdmin() {
-  const [inquiries, setInquiries] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [stats, setStats] = useState({
-    total: 0,
-    new: 0,
-    in_progress: 0,
-    completed: 0,
-  });
 
-  // Load inquiries from API
-  useEffect(() => {
-    loadInquiries();
-    loadStats();
-  }, [filterStatus, filterType, searchTerm]);
+  const filters = useMemo(
+    () => ({
+      status: filterStatus,
+      type: filterType,
+      search: searchTerm,
+    }),
+    [filterStatus, filterType, searchTerm]
+  );
 
-  const loadInquiries = async () => {
-    try {
-      setLoading(true);
-      const params = {
-        page: 1,
-        limit: 50,
-        ...(filterStatus !== "all" && { status: filterStatus }),
-        ...(filterType !== "all" && { product_type: filterType }),
-        ...(searchTerm && { search: searchTerm }),
-      };
+  const { data: inquiries = [], isLoading: loading } = useInquiries(filters);
+  const { data: stats = { total: 0, new: 0, in_progress: 0, completed: 0 } } =
+    useInquiriesStats();
+  const updateStatusMutation = useUpdateInquiryStatus();
 
-      const response = await inquiriesAPI.getAll(params);
-
-      if (response.success) {
-        setInquiries(response.data);
-      } else {
-        toast.error("فشل في تحميل الطلبات");
-      }
-    } catch (error) {
-      console.error("Error loading inquiries:", error);
-      toast.error("خطأ في الاتصال بالخادم");
-    } finally {
-      setLoading(false);
-    }
+  const changeStatus = (inquiryId, newStatus) => {
+    updateStatusMutation.mutate({ inquiryId, newStatus });
   };
 
-  const loadStats = async () => {
-    try {
-      const response = await inquiriesAPI.getStats();
-
-      if (response.success) {
-        setStats({
-          total: response.data.total,
-          new: response.data.byStatus.new,
-          in_progress:
-            response.data.byStatus.in_review + response.data.byStatus.contacted,
-          completed: response.data.byStatus.closed,
-        });
-      }
-    } catch (error) {
-      console.error("Error loading stats:", error);
-    }
-  };
-
-  // Filter inquiries based on search and filters
   const filteredInquiries = inquiries.filter((inquiry) => {
     const matchesSearch =
       inquiry.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -102,68 +63,50 @@ export default function InquiriesAdmin() {
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  // Change inquiry status
-  const changeStatus = async (inquiryId, newStatus) => {
+  // ⭐ أضف phone_whatsapp كـ parameter ثالث
+  const openWhatsApp = async (inquiryId, phoneNumber, customerName) => {
     try {
-      const response = await inquiriesAPI.updateStatus(inquiryId, newStatus);
-
-      if (response.success) {
-        // Update local state
-        setInquiries((prev) =>
-          prev.map((inquiry) =>
-            inquiry.id === inquiryId
-              ? { ...inquiry, status: newStatus }
-              : inquiry
-          )
-        );
-
-        const statusText = {
-          new: "جديد",
-          in_review: "قيد المراجعة",
-          contacted: "تم التواصل",
-          closed: "مكتمل",
-        }[newStatus];
-
-        toast.success(`تم تغيير حالة الطلب إلى: ${statusText}`);
-
-        // Reload stats
-        loadStats();
-      } else {
-        toast.error("فشل في تغيير حالة الطلب");
-      }
-    } catch (error) {
-      console.error("Error changing status:", error);
-      toast.error("خطأ في تغيير حالة الطلب");
-    }
-  };
-
-  // Generate WhatsApp link
-  const openWhatsApp = async (inquiryId, customerName) => {
-    try {
+      // محاولة الحصول على رابط من الـ Backend
       const response = await inquiriesAPI.generateWhatsAppLink(inquiryId);
 
       if (response.success) {
         window.open(response.data.whatsappLink, "_blank");
       } else {
-        // Fallback to manual WhatsApp link
+        // Fallback: إنشاء الرابط يدوياً
+
+        // ⭐ تنظيف رقم الهاتف
+        const cleanPhone = phoneNumber
+          .replace(/\s+/g, "") // إزالة المسافات
+          .replace(/[\-\(\)\+]/g, "") // إزالة - ( ) +
+          .replace(/^00/, ""); // تحويل 00 إلى فارغ
+
         const message = `مرحباً ${customerName}،\n\nشكراً لك لتواصلك معنا عبر موقع ساندي مكرمية.\nرقم الطلب: ${inquiryId}\n\nنحن نعمل على طلبك وسنرد عليك قريباً.\n\nمع تحياتي،\nساندي مكرمية`;
-        const whatsappUrl = `https://wa.me/970599123456?text=${encodeURIComponent(
+
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
           message
         )}`;
+
         window.open(whatsappUrl, "_blank");
       }
     } catch (error) {
       console.error("Error generating WhatsApp link:", error);
-      // Fallback to manual WhatsApp link
+
+      // Fallback في حالة الخطأ
+      const cleanPhone = phoneNumber
+        .replace(/\s+/g, "")
+        .replace(/[\-\(\)\+]/g, "")
+        .replace(/^00/, "");
+
       const message = `مرحباً ${customerName}،\n\nشكراً لك لتواصلك معنا عبر موقع ساندي مكرمية.\nرقم الطلب: ${inquiryId}\n\nنحن نعمل على طلبك وسنرد عليك قريباً.\n\nمع تحياتي،\nساندي مكرمية`;
-      const whatsappUrl = `https://wa.me/970599123456?text=${encodeURIComponent(
+
+      const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
         message
       )}`;
+
       window.open(whatsappUrl, "_blank");
     }
   };
 
-  // Show inquiry details
   const showDetails = (inquiry) => {
     setSelectedInquiry(inquiry);
     setShowDetailModal(true);
@@ -445,8 +388,13 @@ export default function InquiriesAdmin() {
 
                         <button
                           onClick={() =>
-                            openWhatsApp(inquiry.id, inquiry.customer_name)
+                            openWhatsApp(
+                              inquiry.id,
+                              inquiry.phone_whatsapp,
+                              inquiry.customer_name
+                            )
                           }
+                          //                                      ⭐ أضف رقم الهاتف هنا
                           className="text-green-600 hover:text-green-900 p-1 rounded"
                           title="فتح واتساب"
                         >
@@ -637,6 +585,7 @@ export default function InquiriesAdmin() {
                           onClick={() =>
                             openWhatsApp(
                               selectedInquiry.id,
+                              selectedInquiry.phone_whatsapp,
                               selectedInquiry.customer_name
                             )
                           }

@@ -53,7 +53,7 @@ export default function Testimonials() {
 
     if (filters.rating !== "all") {
       filtered = filtered.filter(
-        (testimonial) => testimonial.rating >= parseInt(filters.rating)
+        (testimonial) => testimonial.rating === parseInt(filters.rating)
       );
     }
 
@@ -266,9 +266,11 @@ export default function Testimonials() {
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple focus:border-transparent"
             >
               <option value="all">جميع التقييمات</option>
-              <option value="5">5 نجوم فقط</option>
-              <option value="4">4 نجوم فأكثر</option>
-              <option value="3">3 نجوم فأكثر</option>
+              <option value="5">5 نجوم ⭐⭐⭐⭐⭐</option>
+              <option value="4">4 نجوم ⭐⭐⭐⭐</option>
+              <option value="3">3 نجوم ⭐⭐⭐</option>
+              <option value="2">نجمتان ⭐⭐</option>
+              <option value="1">نجمة واحدة ⭐</option>
             </select>
 
             {/* فلتر التصنيف */}

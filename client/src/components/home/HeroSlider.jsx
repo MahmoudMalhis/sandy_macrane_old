@@ -148,24 +148,7 @@ const HeroSlider = ({ sliderData = [] }) => {
         )}
       </Swiper>
 
-      {/* مؤشر التقدم */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-black bg-opacity-20 z-20">
-        <div className="progress-bar h-full bg-white transition-all duration-300 ease-linear"></div>
-      </div>
-
       <style>{`
-        /* أنيميشن النصوص */
-        @keyframes fadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
         /* تخصيص مؤشرات النقاط */
         .hero-slider .swiper-pagination-bullet {
           width: 12px;
@@ -185,22 +168,7 @@ const HeroSlider = ({ sliderData = [] }) => {
         .hero-swiper-button-next:hover {
           transform: translateY(-50%) scale(1.1);
         }
-
-        /* تأثير التقدم */
-        .progress-bar {
-          width: 0%;
-          animation: progress 5s linear infinite;
-        }
-
-        @keyframes progress {
-          0% {
-            width: 0%;
-          }
-          100% {
-            width: 100%;
-          }
-        }
-
+          
         /* تحسين الاستجابة */
         @media (max-width: 768px) {
           .hero-swiper-button-prev,

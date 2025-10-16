@@ -10,13 +10,6 @@ export {
   ContactCard,
   StatsCard,
 } from "./Cards";
-export {
-  WhatsAppButton,
-  QuickMessageButton,
-  FloatingWhatsApp,
-  WhatsAppContactSection,
-  generateWhatsAppLink,
-} from "./WhatsAppIntegration";
 
 // client/src/components/forms/index.js
 export { default as UnifiedForm } from "./UnifiedForm";

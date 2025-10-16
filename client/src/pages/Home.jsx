@@ -7,7 +7,7 @@ import AboutTeaser from "../components/home/AboutTeaser";
 import FeaturedAlbums from "../components/home/FeaturedAlbums";
 import TestimonialsSlider from "../components/home/TestimonialsSlider";
 import DualCTA from "../components/home/DualCTA";
-import { FloatingWhatsApp } from "../components/ui/WhatsAppIntegration";
+import AIChatbot from "../components/home/AIChatbot";
 import { useApi } from "../hooks/useApi";
 import { useSEO } from "../hooks/useSEO";
 import Loading from "../utils/Loading";
@@ -137,7 +137,7 @@ export default function Home() {
   const sortedSections = getSortedSections();
   const whatsappSettings = {
     enabled: settings?.home_whatsapp?.enabled !== false,
-    phoneNumber: settings?.whatsapp_owner || "970599123456",
+    phoneNumber: settings?.whatsapp_owner,
     businessHours: settings?.home_whatsapp?.business_hours || {
       start: "09:00",
       end: "21:00",
@@ -151,9 +151,8 @@ export default function Home() {
 
       {settings?.home_sections?.whatsapp_float?.enabled &&
         whatsappSettings.enabled && (
-          <FloatingWhatsApp
+          <AIChatbot
             phoneNumber={whatsappSettings.phoneNumber}
-            businessHours={whatsappSettings.businessHours}
             enabled={true}
           />
         )}

@@ -1,24 +1,18 @@
-/* eslint-disable no-unused-vars */
-// client/src/pages/admin/TestimonialsAdmin.jsx - مربوطة مع Backend
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
   Star,
   Search,
-  Filter,
   Eye,
   EyeOff,
   Trash2,
   Calendar,
   User,
   CheckCircle,
-  XCircle,
   Clock,
   ThumbsUp,
   ThumbsDown,
-  RefreshCw,
-  Download,
   Grid,
   List,
 } from "lucide-react";
@@ -26,150 +20,64 @@ import { toast } from "react-hot-toast";
 import Badge from "../../components/common/Badge";
 import Loading from "../../utils/LoadingSettings";
 import { reviewsAPI } from "../../api/reviews";
+import {
+  useReviews,
+  useReviewsStats,
+  useUpdateReviewStatus,
+  useDeleteReview,
+} from "../../hooks/queries/useReviews";
 import { confirmDelete } from "../../components/ConfirmToast";
 
 const TestimonialsAdmin = () => {
-  const [testimonials, setTestimonials] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterRating, setFilterRating] = useState("all");
   const [selectedTestimonial, setSelectedTestimonial] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [stats, setStats] = useState({});
   const [selectedTestimonials, setSelectedTestimonials] = useState([]);
   const [viewMode, setViewMode] = useState("table");
 
-  // جلب التقييمات من الـ API
-  const fetchTestimonials = async (page = 1, filters = {}) => {
-    try {
-      setLoading(true);
+  const filters = useMemo(
+    () => ({
+      page: currentPage,
+      limit: 20,
+      status: filterStatus,
+      rating: filterRating,
+      search: searchTerm,
+    }),
+    [currentPage, filterStatus, filterRating, searchTerm]
+  );
 
-      // تحضير المعاملات للـ API
-      const params = {
-        page,
-        limit: 20,
-        ...filters,
-      };
+  const { data: reviewsData, isLoading: loading } = useReviews(filters);
+  const testimonials = reviewsData?.data || [];
+  const pagination = reviewsData?.pagination || {};
 
-      // إضافة فلاتر البحث
-      if (searchTerm.trim()) {
-        params.search = searchTerm.trim();
-      }
+  const { data: stats = {} } = useReviewsStats();
+  const updateStatusMutation = useUpdateReviewStatus();
+  const deleteReviewMutation = useDeleteReview(() => {
+    setShowDetailModal(false);
+    setSelectedTestimonial(null);
+  });
 
-      if (filterStatus !== "all") {
-        params.status = filterStatus;
-      } else {
-        params.status = "all"; // لازم نمررها للباك اند
-      }
-
-      if (filterRating !== "all") {
-        params.min_rating = filterRating;
-      }
-
-      const response = await reviewsAPI.getAllAdmin(params);
-
-      if (response.success) {
-        setTestimonials(response.data);
-        setPagination(response.pagination);
-      } else {
-        toast.error("فشل في جلب التقييمات");
-      }
-    } catch (error) {
-      console.error("Error fetching testimonials:", error);
-      toast.error("حدث خطأ في جلب التقييمات");
-    } finally {
-      setLoading(false);
-    }
+  const handleStatusChange = (reviewId, status) => {
+    updateStatusMutation.mutate({ reviewId, status });
   };
 
-  // جلب الإحصائيات
-  const fetchStats = async () => {
-    try {
-      const response = await reviewsAPI.getStats();
-      if (response.success) {
-        setStats(response.data);
-      }
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchTestimonials(currentPage, {
-      status: filterStatus !== "all" ? filterStatus : undefined,
-      min_rating: filterRating !== "all" ? filterRating : undefined,
-      search: searchTerm.trim() || undefined,
-    });
-  }, [currentPage, filterStatus, filterRating]);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  // البحث مع تأخير
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setCurrentPage(1);
-      fetchTestimonials(1);
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
-
-  // تغيير حالة التقييم
-  const changeStatus = async (testimonialId, newStatus) => {
-    try {
-      const response = await reviewsAPI.changeStatus(testimonialId, newStatus);
-
-      if (response.success) {
-        // تحديث التقييم في القائمة المحلية
-        setTestimonials((prevTestimonials) =>
-          prevTestimonials.map((testimonial) =>
-            testimonial.id === testimonialId
-              ? { ...testimonial, status: newStatus }
-              : testimonial
-          )
-        );
-
-        // تحديث الإحصائيات
-        await fetchStats();
-
-        const statusText = {
-          published: "نشر",
-          hidden: "إخفاء",
-          pending: "مراجعة",
-        }[newStatus];
-
-        toast.success(`تم ${statusText} التقييم بنجاح!`);
-      } else {
-        toast.error("فشل في تغيير حالة التقييم");
-      }
-    } catch (error) {
-      console.error("Error changing testimonial status:", error);
-      toast.error("حدث خطأ في تغيير حالة التقييم");
-    }
-  };
-
-  // حذف التقييم
-  const deleteTestimonial = async (testimonialId) => {
-    confirmDelete("هذا التقييم", async () => {
-      try {
-        await reviewsAPI.delete(testimonialId);
-        fetchTestimonials();
-        toast.success("تم حذف التقييم بنجاح");
-      } catch (error) {
-        toast.error("فشل في حذف التقييم");
-      }
+  const handleDelete = (testimonial) => {
+    confirmDelete({
+      message: `هل أنت متأكد من حذف تقييم "${testimonial.author_name}"؟`,
+      subtitle: "سيتم حذف التقييم والصورة المرفقة نهائياً ولا يمكن التراجع",
+      confirmText: "حذف",
+      cancelText: "إلغاء",
+      onConfirm: () => {
+        deleteReviewMutation.mutate(testimonial.id);
+      },
     });
   };
 
-  // عرض تفاصيل التقييم
   const showDetails = async (testimonial) => {
     try {
-      // جلب تفاصيل التقييم الكاملة
       const response = await reviewsAPI.getById(testimonial.id);
       if (response.success) {
         setSelectedTestimonial(response.data);
@@ -183,14 +91,6 @@ const TestimonialsAdmin = () => {
     }
   };
 
-  // تحديث الصفحة
-  const handleRefresh = () => {
-    fetchTestimonials(currentPage);
-    fetchStats();
-    toast.success("تم تحديث البيانات");
-  };
-
-  // التنقل بين الصفحات
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
@@ -248,44 +148,14 @@ const TestimonialsAdmin = () => {
 
     try {
       const promises = selectedTestimonials.map((id) =>
-        reviewsAPI.changeStatus(id, status)
+        reviewsAPI.handleStatusChange(id, status)
       );
       await Promise.all(promises);
 
       toast.success(`تم تغيير حالة ${selectedTestimonials.length} تقييم`);
       setSelectedTestimonials([]);
-      fetchTestimonials(currentPage);
-    } catch (error) {
+    } catch {
       toast.error("فشل في تغيير الحالة");
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const BOM = "\uFEFF"; // UTF-8 BOM for Arabic support
-      const csvContent =
-        BOM +
-        "الاسم,التقييم,النص,الحالة,التاريخ,المنتج\n" +
-        testimonials
-          .map(
-            (t) =>
-              `"${t.author_name}",${t.rating},"${t.text.replace(/"/g, '""')}",${
-                t.status
-              },"${formatDate(t.created_at)}","${t.album_title || "غير محدد"}"`
-          )
-          .join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `testimonials-${
-        new Date().toISOString().split("T")[0]
-      }.csv`;
-      link.click();
-
-      toast.success("تم تصدير البيانات");
-    } catch (error) {
-      toast.error("فشل في التصدير");
     }
   };
 
@@ -355,7 +225,9 @@ const TestimonialsAdmin = () => {
 
               {testimonial.status !== "published" && (
                 <button
-                  onClick={() => changeStatus(testimonial.id, "published")}
+                  onClick={() =>
+                    handleStatusChange(testimonial.id, "published")
+                  }
                   className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
                   title="نشر"
                 >
@@ -365,7 +237,7 @@ const TestimonialsAdmin = () => {
 
               {testimonial.status !== "hidden" && (
                 <button
-                  onClick={() => changeStatus(testimonial.id, "hidden")}
+                  onClick={() => handleStatusChange(testimonial.id, "hidden")}
                   className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg"
                   title="إخفاء"
                 >
@@ -374,7 +246,7 @@ const TestimonialsAdmin = () => {
               )}
 
               <button
-                onClick={() => deleteTestimonial(testimonial.id)}
+                onClick={() => handleDelete(testimonial)}
                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                 title="حذف"
               >
@@ -393,7 +265,6 @@ const TestimonialsAdmin = () => {
 
   return (
     <div className="p-6">
-      {/* العنوان والإحصائيات */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -414,26 +285,9 @@ const TestimonialsAdmin = () => {
               {viewMode === "table" ? <Grid size={16} /> : <List size={16} />}
               {viewMode === "table" ? "عرض كاردات" : "عرض جدول"}
             </button>
-
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Download size={16} />
-              تصدير
-            </button>
-
-            <button
-              onClick={handleRefresh}
-              className="flex items-center gap-2 bg-purple text-white px-4 py-2 rounded-lg hover:bg-purple-hover transition-colors"
-            >
-              <RefreshCw size={16} />
-              تحديث
-            </button>
           </div>
         </div>
 
-        {/* الإحصائيات السريعة */}
         <div className="grid max-sm:grid-cols-1 max-md:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
@@ -510,7 +364,6 @@ const TestimonialsAdmin = () => {
           </div>
         </div>
       </div>
-      {/* أدوات البحث والفلترة */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
@@ -577,8 +430,6 @@ const TestimonialsAdmin = () => {
           </div>
         </div>
       )}
-      {/* قائمة التقييمات */}
-
       {viewMode === "table" ? (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
@@ -700,7 +551,7 @@ const TestimonialsAdmin = () => {
                           {testimonial.status !== "published" && (
                             <button
                               onClick={() =>
-                                changeStatus(testimonial.id, "published")
+                                handleStatusChange(testimonial.id, "published")
                               }
                               className="text-green-600 hover:text-green-900 p-1 rounded"
                               title="نشر"
@@ -712,7 +563,7 @@ const TestimonialsAdmin = () => {
                           {testimonial.status !== "hidden" && (
                             <button
                               onClick={() =>
-                                changeStatus(testimonial.id, "hidden")
+                                handleStatusChange(testimonial.id, "hidden")
                               }
                               className="text-orange-600 hover:text-orange-900 p-1 rounded"
                               title="إخفاء"
@@ -722,7 +573,7 @@ const TestimonialsAdmin = () => {
                           )}
 
                           <button
-                            onClick={() => deleteTestimonial(testimonial.id)}
+                            onClick={() => handleDelete(testimonial)}
                             className="text-red-600 hover:text-red-900 p-1 rounded"
                             title="حذف"
                           >
@@ -755,7 +606,6 @@ const TestimonialsAdmin = () => {
         <CardsView />
       )}
 
-      {/* شريط التنقل بين الصفحات */}
       {pagination.pages > 1 && (
         <div className="flex justify-center mt-6">
           <div className="flex gap-2">
@@ -777,7 +627,6 @@ const TestimonialsAdmin = () => {
           </div>
         </div>
       )}
-      {/* مودال تفاصيل التقييم */}
       <AnimatePresence>
         {showDetailModal && selectedTestimonial && (
           <motion.div
@@ -808,7 +657,6 @@ const TestimonialsAdmin = () => {
                 </div>
 
                 <div className="space-y-6">
-                  {/* معلومات العميل */}
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center gap-3 mb-3">
                       <User size={20} className="text-gray-600" />
@@ -831,8 +679,6 @@ const TestimonialsAdmin = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* التقييم */}
                   <div>
                     <div className="flex items-center gap-3 mb-3">
                       <Star size={20} className="text-yellow-500" />
@@ -846,7 +692,6 @@ const TestimonialsAdmin = () => {
                     </div>
                   </div>
 
-                  {/* النص */}
                   <div>
                     <h3 className="font-semibold text-gray-800 mb-3">
                       نص التقييم
@@ -858,7 +703,6 @@ const TestimonialsAdmin = () => {
                     </div>
                   </div>
 
-                  {/* المنتج المرتبط */}
                   {selectedTestimonial.album_title && (
                     <div>
                       <h3 className="font-semibold text-gray-800 mb-3">
@@ -872,7 +716,6 @@ const TestimonialsAdmin = () => {
                     </div>
                   )}
 
-                  {/* الصورة المرفقة */}
                   {selectedTestimonial.attached_image && (
                     <div>
                       <h3 className="font-semibold text-gray-800 mb-3">
@@ -889,7 +732,6 @@ const TestimonialsAdmin = () => {
                     </div>
                   )}
 
-                  {/* الحالة الحالية */}
                   <div>
                     <h3 className="font-semibold text-gray-800 mb-3">
                       الحالة الحالية
@@ -899,12 +741,14 @@ const TestimonialsAdmin = () => {
                     </div>
                   </div>
 
-                  {/* أزرار الإجراءات */}
                   <div className="flex gap-3 pt-4 border-t">
                     {selectedTestimonial.status !== "published" && (
                       <button
                         onClick={() => {
-                          changeStatus(selectedTestimonial.id, "published");
+                          handleStatusChange(
+                            selectedTestimonial.id,
+                            "published"
+                          );
                           setShowDetailModal(false);
                         }}
                         className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
@@ -917,7 +761,7 @@ const TestimonialsAdmin = () => {
                     {selectedTestimonial.status === "published" && (
                       <button
                         onClick={() => {
-                          changeStatus(selectedTestimonial.id, "hidden");
+                          handleStatusChange(selectedTestimonial.id, "hidden");
                           setShowDetailModal(false);
                         }}
                         className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
@@ -929,7 +773,7 @@ const TestimonialsAdmin = () => {
 
                     <button
                       onClick={() => {
-                        deleteTestimonial(selectedTestimonial.id);
+                        handleDelete(selectedTestimonial);
                         setShowDetailModal(false);
                       }}
                       className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
