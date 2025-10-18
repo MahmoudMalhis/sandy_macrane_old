@@ -249,9 +249,6 @@ export const getById = InquiriesController.getById;
 export const updateStatus = InquiriesController.updateStatus;
 export const getStats = InquiriesController.getStats;
 export const generateWhatsAppLink = InquiriesController.generateWhatsAppLink;
-
-// Export delete with alternative name
-export { InquiriesController as delete };
 export const deleteInquiry = InquiriesController.delete;
 
 export default InquiriesController;

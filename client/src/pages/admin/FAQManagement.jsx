@@ -46,7 +46,6 @@ export default function FAQManagement() {
     name: "faqs",
   });
 
-  // FAQ Categories with icons
   const categories = [
     { id: "general", name: "عام", icon: HelpCircle },
     { id: "orders", name: "الطلبات", icon: Clock },
@@ -59,12 +58,11 @@ export default function FAQManagement() {
     { id: "returns", name: "الإرجاع", icon: RefreshCw },
   ];
 
-  // ✅ تحميل البيانات في الـ form عند تغيير faqData
   useEffect(() => {
     if (faqData?.faqs) {
       setValue("faqs", faqData.faqs);
     } else {
-      setValue("faqs");
+      setValue("faqs", []);
     }
   }, [faqData, setValue]);
 
@@ -80,7 +78,7 @@ export default function FAQManagement() {
       answer: "",
     };
     append(newFAQ);
-    setEditingIndex(fields.length); // Edit the new item immediately
+    setEditingIndex(fields.length);
   };
 
   const deleteFAQ = (index) => {

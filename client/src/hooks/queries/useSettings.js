@@ -7,6 +7,7 @@ export const settingsKeys = {
   all: ["settings"],
   public: () => [...settingsKeys.all, "public"],
   admin: () => [...settingsKeys.all, "admin"],
+  contact: () => [...settingsKeys.all, "contact"],
 };
 
 export const usePublicSettings = () => {
@@ -19,6 +20,82 @@ export const usePublicSettings = () => {
     },
     staleTime: 15 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+  });
+};
+
+export const useContactSettings = () => {
+  return useQuery({
+    queryKey: settingsKeys.contact(),
+    queryFn: async () => {
+      const response = await settingsAPI.getAdminSettings();
+      if (!response.success) throw new Error("فشل في تحميل إعدادات التواصل");
+
+      const data = response.data;
+
+      return {
+        contact_whatsapp_owner: data.whatsapp_owner || "",
+        contact_email: data.contact_info?.email || "",
+        contact_address: data.contact_info?.address || "",
+        business_hours_weekdays:
+          data.contact_info?.working_hours?.weekdays || "",
+        business_hours_weekend: data.contact_info?.working_hours?.weekend || "",
+        social_facebook:
+          data.social_links?.facebook ||
+          data.contact_info?.social?.facebook ||
+          "",
+        social_instagram:
+          data.social_links?.instagram ||
+          data.contact_info?.social?.instagram ||
+          "",
+        social_whatsapp_business: data.whatsapp_owner || "",
+      };
+    },
+    staleTime: 3 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useUpdateContactSettings = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (formData) => {
+      const apiData = {
+        whatsapp_owner: formData.contact_whatsapp_owner,
+        contact_info: {
+          whatsapp: formData.contact_whatsapp_owner,
+          email: formData.contact_email,
+          address: formData.contact_address,
+          working_hours: {
+            weekdays: formData.business_hours_weekdays,
+            weekend: formData.business_hours_weekend,
+          },
+          social: {
+            facebook: formData.social_facebook,
+            instagram: formData.social_instagram,
+          },
+        },
+        social_links: {
+          facebook: formData.social_facebook,
+          instagram: formData.social_instagram,
+          whatsapp_business: formData.social_whatsapp_business,
+        },
+      };
+
+      const response = await settingsAPI.updateContactInfo(apiData);
+      if (!response.success)
+        throw new Error(response.message || "فشل في حفظ الإعدادات");
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.all });
+      toast.success(" تم حفظ الإعدادات بنجاح");
+    },
+    onError: (error) => {
+      console.error("Error saving contact settings:", error);
+      toast.error(error.message || "❌ فشل في حفظ الإعدادات");
+    },
   });
 };
 

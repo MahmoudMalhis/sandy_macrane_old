@@ -7,7 +7,7 @@ import {
   getById,
   updateStatus,
   generateWhatsAppLink,
-  delete as deleteInquiry,
+  deleteInquiry,
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";
@@ -16,7 +16,6 @@ import { upload } from "../../utils/upload.js";
 
 const router = Router();
 
-// Inquiry creation validation
 const createInquiryValidation = [
   body("customer_name")
     .trim()

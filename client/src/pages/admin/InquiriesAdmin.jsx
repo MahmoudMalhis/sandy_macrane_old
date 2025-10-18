@@ -3,6 +3,7 @@ import {
   useInquiries,
   useInquiriesStats,
   useUpdateInquiryStatus,
+  useDeleteInquiry,
 } from "../../hooks/queries/useInquiries";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,10 +19,12 @@ import {
   AlertTriangle,
   X,
   FileText,
+  Trash2,
 } from "lucide-react";
 import { inquiriesAPI } from "../../api/inquiries.js";
 import Badge from "../../components/common/Badge";
 import Loading from "../../utils/LoadingSettings";
+import toast from "react-hot-toast";
 
 export default function InquiriesAdmin() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,67 +46,31 @@ export default function InquiriesAdmin() {
   const { data: stats = { total: 0, new: 0, in_progress: 0, completed: 0 } } =
     useInquiriesStats();
   const updateStatusMutation = useUpdateInquiryStatus();
+  const deleteInquiryMutation = useDeleteInquiry();
 
   const changeStatus = (inquiryId, newStatus) => {
     updateStatusMutation.mutate({ inquiryId, newStatus });
   };
+  const filteredInquiries = inquiries;
 
-  const filteredInquiries = inquiries.filter((inquiry) => {
-    const matchesSearch =
-      inquiry.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inquiry.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (inquiry.album_title &&
-        inquiry.album_title.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesStatus =
-      filterStatus === "all" || inquiry.status === filterStatus;
-    const matchesType =
-      filterType === "all" || inquiry.product_type === filterType;
-
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  // ⭐ أضف phone_whatsapp كـ parameter ثالث
-  const openWhatsApp = async (inquiryId, phoneNumber, customerName) => {
+  const openWhatsApp = async (inquiryId) => {
     try {
-      // محاولة الحصول على رابط من الـ Backend
       const response = await inquiriesAPI.generateWhatsAppLink(inquiryId);
 
-      if (response.success) {
+      if (response.success && response.data?.whatsappLink) {
         window.open(response.data.whatsappLink, "_blank");
       } else {
-        // Fallback: إنشاء الرابط يدوياً
-
-        // ⭐ تنظيف رقم الهاتف
-        const cleanPhone = phoneNumber
-          .replace(/\s+/g, "") // إزالة المسافات
-          .replace(/[\-\(\)\+]/g, "") // إزالة - ( ) +
-          .replace(/^00/, ""); // تحويل 00 إلى فارغ
-
-        const message = `مرحباً ${customerName}،\n\nشكراً لك لتواصلك معنا عبر موقع ساندي مكرمية.\nرقم الطلب: ${inquiryId}\n\nنحن نعمل على طلبك وسنرد عليك قريباً.\n\nمع تحياتي،\nساندي مكرمية`;
-
-        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-          message
-        )}`;
-
-        window.open(whatsappUrl, "_blank");
+        throw new Error("فشل في إنشاء رابط واتساب");
       }
     } catch (error) {
-      console.error("Error generating WhatsApp link:", error);
+      console.error("Error opening WhatsApp:", error);
+      toast.error("فشل في فتح واتساب. يرجى المحاولة مرة أخرى.");
+    }
+  };
 
-      // Fallback في حالة الخطأ
-      const cleanPhone = phoneNumber
-        .replace(/\s+/g, "")
-        .replace(/[\-\(\)\+]/g, "")
-        .replace(/^00/, "");
-
-      const message = `مرحباً ${customerName}،\n\nشكراً لك لتواصلك معنا عبر موقع ساندي مكرمية.\nرقم الطلب: ${inquiryId}\n\nنحن نعمل على طلبك وسنرد عليك قريباً.\n\nمع تحياتي،\nساندي مكرمية`;
-
-      const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-        message
-      )}`;
-
-      window.open(whatsappUrl, "_blank");
+  const handleDelete = (inquiryId) => {
+    if (window.confirm("هل أنت متأكد من حذف هذا الطلب؟")) {
+      deleteInquiryMutation.mutate(inquiryId);
     }
   };
 
@@ -385,15 +352,15 @@ export default function InquiriesAdmin() {
                         >
                           <Eye size={16} />
                         </button>
-
                         <button
-                          onClick={() =>
-                            openWhatsApp(
-                              inquiry.id,
-                              inquiry.phone_whatsapp,
-                              inquiry.customer_name
-                            )
-                          }
+                          onClick={() => handleDelete(inquiry.id)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded"
+                          title="حذف"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => openWhatsApp(inquiry.id)}
                           className="text-green-600 hover:text-green-900 p-1 rounded"
                           title="فتح واتساب"
                         >
@@ -581,13 +548,7 @@ export default function InquiriesAdmin() {
                       </h3>
                       <div className="space-y-4">
                         <button
-                          onClick={() =>
-                            openWhatsApp(
-                              selectedInquiry.id,
-                              selectedInquiry.phone_whatsapp,
-                              selectedInquiry.customer_name
-                            )
-                          }
+                          onClick={() => openWhatsApp(selectedInquiry.id)}
                           className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                         >
                           <Phone size={16} />
