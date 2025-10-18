@@ -1,35 +1,14 @@
-/* eslint-disable no-unused-vars */
-// client/src/components/faq/FAQSupportSection.jsx
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { MessageCircle, Clock, Star } from "lucide-react";
 import { openWhatsApp } from "../../utils/whatsapp";
-import { useEffect } from "react";
-import { settingsAPI } from "../../api/settings";
-import { useState } from "react";
+import { usePublicSettings } from "../../hooks/queries/useSettings";
 
 const FAQSupportSection = ({ isVisible }) => {
-  const [contactInfo, setContactInfo] = useState(null);
-
-  useEffect(() => {
-    const loadContactInfo = async () => {
-      try {
-        const response = await settingsAPI.getPublic();
-
-        if (response?.success && response?.data) {
-          const whatsapp = response.data.contact_info?.whatsapp;
-
-          setContactInfo({
-            whatsapp: whatsapp,
-          });
-        }
-      } catch (error) {
-        console.error("Error loading contact info:", error);
-      }
-    };
-
-    loadContactInfo();
-  }, []);
-
+  const { data: settings } = usePublicSettings();
+  const contactInfo = {
+    whatsapp: settings?.contact_info?.whatsapp || settings?.whatsapp_owner,
+  };
   const handleWhatsAppClick = () => {
     const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
     openWhatsApp(contactInfo?.whatsapp, message);

@@ -23,6 +23,7 @@ import { useLikes } from "../hooks/useLikes";
 import AlbumCard from "../components/common/AlbumCard";
 import { prepareAlbumImages } from "../utils/albumUtils";
 import Error from "../utils/Error";
+import { openWhatsApp } from "../utils/whatsapp";
 
 export default function AlbumDetail() {
   const { slug } = useParams();
@@ -50,17 +51,14 @@ export default function AlbumDetail() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { openLightbox } = useAppStore();
 
-  // ✅ فحص التحميل أولاً
   if (loading) {
     return <Loading />;
   }
 
-  // ✅ فحص الخطأ ثانياً
   if (error) {
     return <Error />;
   }
 
-  // ✅ فحص عدم وجود الألبوم ثالثاً
   if (!album) {
     return (
       <div className="min-h-screen bg-beige flex items-center justify-center">
@@ -79,7 +77,6 @@ export default function AlbumDetail() {
     );
   }
 
-  // ✅ الآن فقط يمكننا استخدام album بأمان
   const albumMedia = album.media || [];
 
   const validMedia = albumMedia.filter((media) => {
@@ -105,7 +102,6 @@ export default function AlbumDetail() {
       ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
       : 0;
 
-  // ✅ Functions
   const handleImageClick = (imageIndex) => {
     if (!album?.media || album.media.length === 0) return;
 
@@ -130,15 +126,16 @@ export default function AlbumDetail() {
     }
   };
 
-  const handleWhatsAppContact = () => {
-    const whatsappNumber = settings?.whatsapp_owner || "970599123456";
+const handleWhatsAppContact = () => {
+  const whatsappNumber =
+    settings?.whatsapp_owner || settings?.contact_whatsapp_owner;
 
-    const cleanPhone = whatsappNumber
-      .replace(/\s+/g, "")
-      .replace(/[\-\(\)\+]/g, "")
-      .replace(/^00/, "");
+  if (!whatsappNumber) {
+    alert("عذراً، رقم الواتساب غير متوفر حالياً");
+    return;
+  }
 
-    const message = `مرحباً ساندي 👋
+  const message = `مرحباً ساندي 👋
 
 أريد الاستفسار عن هذا المنتج:
 📦 *${album.title}*
@@ -147,10 +144,8 @@ ${album.description ? `الوصف: ${album.description.substring(0, 100)}...` : 
 
 شكراً 🌷`;
 
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
-    window.open(whatsappUrl, "_blank");
-  };
+  openWhatsApp(whatsappNumber, message);
+};
 
   const handleRelatedAlbumClick = (relatedAlbum) => {
     if (!relatedAlbum.slug) {
@@ -165,7 +160,6 @@ ${album.description ? `الوصف: ${album.description.substring(0, 100)}...` : 
     openLightbox(images, imageIndex);
   };
 
-  // ✅ JSX
   return (
     <div className="min-h-screen bg-beige py-8">
       <div className="container mx-auto px-4 mb-6">

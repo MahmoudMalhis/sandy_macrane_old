@@ -28,8 +28,6 @@ export const useReviews = (filters = {}) => {
         params.min_rating = filters.rating;
       }
 
-      console.log("📊 React Query Params:", params);
-
       const response = await reviewsAPI.getAllAdmin(params);
       if (!response.success) throw new Error("فشل في جلب التقييمات");
 
@@ -121,18 +119,24 @@ export const useAlbumReviews = (albumId) => {
       const response = await reviewsAPI.getByAlbum(albumId, {
         status: "published",
       });
-
       if (!response.success) {
         console.warn("فشل في تحميل التقييمات");
         return [];
       }
-
       return response.data || [];
     },
     enabled: !!albumId,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-
-    retry: 1,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    onError: (error) => {
+      if (error.status !== 429) {
+        console.error("خطأ في تحميل التقييمات:", error.message);
+      }
+    },
   });
 };

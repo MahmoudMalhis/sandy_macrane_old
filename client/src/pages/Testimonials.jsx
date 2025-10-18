@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useReviews } from "../hooks/queries/useReviews";
+import Error from "../utils/Error";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star,
@@ -10,15 +13,11 @@ import {
 } from "lucide-react";
 import Badge from "../components/common/Badge";
 import Loading from "../utils/Loading";
-import { reviewsAPI } from "../api/reviews";
 import ReviewForm from "../forms/ReviewForm";
 import { Link } from "react-router-dom";
 import ApplyNow from "../components/ApplyNow";
 
 export default function Testimonials() {
-  const [testimonials, setTestimonials] = useState([]);
-  const [filteredTestimonials, setFilteredTestimonials] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     rating: "all",
     category: "all",
@@ -26,77 +25,17 @@ export default function Testimonials() {
   });
   const [sortBy, setSortBy] = useState("latest");
   const [showAddForm, setShowAddForm] = useState(false);
+  const {
+    data: reviewsData,
+    isLoading,
+    isError,
+    error,
+  } = useReviews({
+    status: "published",
+    limit: 100,
+  });
 
-  useEffect(() => {
-    const fetchTestimonials = async () => {
-      try {
-        setLoading(true);
-        const response = await reviewsAPI.getAll({ status: "published" });
-        if (response.success) {
-          setTestimonials(response.data);
-          setFilteredTestimonials(response.data);
-        } else {
-          console.error("فشل في جلب التقييمات:", response.message);
-        }
-      } catch (error) {
-        console.error("API Error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTestimonials();
-  }, []);
-
-  useEffect(() => {
-    let filtered = [...testimonials];
-
-    if (filters.rating !== "all") {
-      filtered = filtered.filter(
-        (testimonial) => testimonial.rating === parseInt(filters.rating)
-      );
-    }
-
-    if (filters.category !== "all") {
-      filtered = filtered.filter((testimonial) => {
-        if (!testimonial.album_title) return false;
-        const isFrame =
-          testimonial.album_title.includes("برواز") ||
-          testimonial.album_title.includes("إطار");
-        return filters.category === "frame" ? isFrame : !isFrame;
-      });
-    }
-
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (testimonial) =>
-          testimonial.author_name.toLowerCase().includes(searchTerm) ||
-          testimonial.text.toLowerCase().includes(searchTerm) ||
-          testimonial.album_title.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    switch (sortBy) {
-      case "latest":
-        filtered.sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
-        );
-        break;
-      case "oldest":
-        filtered.sort(
-          (a, b) => new Date(a.created_at) - new Date(b.created_at)
-        );
-        break;
-      case "rating":
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      default:
-        break;
-    }
-
-    setFilteredTestimonials(filtered);
-  }, [filters, sortBy, testimonials]);
+  const testimonials = useMemo(() => reviewsData?.data || [], [reviewsData]);
 
   const renderStars = (rating) => {
     return [...Array(5)].map((_, i) => (
@@ -119,53 +58,99 @@ export default function Testimonials() {
     });
   };
 
-  const getAverageRating = () => {
+  const getAverageRating = useMemo(() => {
     if (testimonials.length === 0) return 0;
     const sum = testimonials.reduce(
       (acc, testimonial) => acc + testimonial.rating,
       0
     );
     return (sum / testimonials.length).toFixed(1);
-  };
+  }, [testimonials]);
 
-  const getRatingDistribution = () => {
+  const getRatingDistribution = useMemo(() => {
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     testimonials.forEach((testimonial) => {
       distribution[testimonial.rating]++;
     });
     return distribution;
-  };
-  const getCustomerSatisfaction = () => {
-    if (testimonials.length === 0) return 0;
+  }, [testimonials]);
 
+  const getCustomerSatisfaction = useMemo(() => {
+    if (testimonials.length === 0) return 0;
     const positiveReviews = testimonials.filter(
       (testimonial) => testimonial.rating >= 4
     ).length;
-
     const satisfaction = (positiveReviews / testimonials.length) * 100;
-
     return Math.round(satisfaction);
-  };
+  }, [testimonials]);
 
-  const fetchTestimonials = async () => {
-    try {
-      const response = await reviewsAPI.getAll({ status: "published" });
-      if (response.success) {
-        setTestimonials(response.data);
-        setFilteredTestimonials(response.data);
-      }
-    } catch (error) {
-      console.error("خطأ في جلب التقييمات:", error);
+  const filteredTestimonials = useMemo(() => {
+    let filtered = [...testimonials];
+
+    // فلتر التقييم
+    if (filters.rating !== "all") {
+      filtered = filtered.filter(
+        (testimonial) => testimonial.rating === parseInt(filters.rating)
+      );
     }
-  };
 
-  if (loading) {
+    // فلتر الفئة
+    if (filters.category !== "all") {
+      filtered = filtered.filter((testimonial) => {
+        if (!testimonial.album_title) return false;
+        const isFrame =
+          testimonial.album_title.includes("برواز") ||
+          testimonial.album_title.includes("إطار");
+        return filters.category === "frame" ? isFrame : !isFrame;
+      });
+    }
+
+    // فلتر البحث
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      filtered = filtered.filter(
+        (testimonial) =>
+          testimonial.author_name.toLowerCase().includes(searchTerm) ||
+          testimonial.text.toLowerCase().includes(searchTerm) ||
+          (testimonial.album_title &&
+            testimonial.album_title.toLowerCase().includes(searchTerm))
+      );
+    }
+
+    // الترتيب
+    switch (sortBy) {
+      case "latest":
+        filtered.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+        break;
+      case "oldest":
+        filtered.sort(
+          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        );
+        break;
+      case "rating":
+        filtered.sort((a, b) => b.rating - a.rating);
+        break;
+      default:
+        break;
+    }
+
+    return filtered;
+  }, [testimonials, filters, sortBy]);
+
+  if (isLoading) {
     return <Loading />;
   }
 
-  const averageRating = getAverageRating();
-  const ratingDistribution = getRatingDistribution();
-  const customerSatisfaction = getCustomerSatisfaction();
+  // ✅ أضف بعده مباشرة:
+  if (isError) {
+    return <Error error={error?.message || "فشل في تحميل التقييمات"} />;
+  }
+
+  const averageRating = getAverageRating;
+  const ratingDistribution = getRatingDistribution;
+  const customerSatisfaction = getCustomerSatisfaction;
 
   return (
     <div className="min-h-screen bg-beige py-8">
@@ -537,7 +522,6 @@ export default function Testimonials() {
         isOpen={showAddForm}
         onClose={() => setShowAddForm(false)}
         onSubmitSuccess={() => {
-          fetchTestimonials();
           setShowAddForm(false);
         }}
       />
