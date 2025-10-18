@@ -1,11 +1,16 @@
-// client/src/pages/admin/ContactMessagesAdmin.jsx
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import {
+  useContactMessages,
+  useContactStats,
+  useMarkAsRead,
+  useUpdateContactStatus,
+  useUpdateContactPriority,
+  useDeleteMessage,
+} from "../../hooks/queries/useContactMessages";
 import { toast } from "react-hot-toast";
 import {
   Mail,
   Search,
-  Filter,
   Eye,
   Trash2,
   MessageCircle,
@@ -14,21 +19,17 @@ import {
   Clock,
   Archive,
   BarChart3,
-  Download,
   RefreshCw,
 } from "lucide-react";
 import { contactAPI } from "../../api/contact";
 import Button from "../../components/common/Button";
 import Loading from "../../utils/LoadingSettings";
+import Error from "../../utils/Error";
 
 export default function ContactMessagesAdmin() {
-  const [messages, setMessages] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Filters
   const [filters, setFilters] = useState({
     status: "",
     priority: "",
@@ -37,106 +38,53 @@ export default function ContactMessagesAdmin() {
     limit: 20,
   });
 
-  const [pagination, setPagination] = useState({});
+  const {
+    data: messagesData,
+    isLoading: loading,
+    error,
+  } = useContactMessages(filters);
 
-  useEffect(() => {
-    loadMessages();
-    loadStats();
-  }, [filters]);
+  const { data: stats } = useContactStats();
 
-  const loadMessages = async () => {
-    try {
-      setLoading(true);
-      const response = await contactAPI.getAll(filters);
+  const markAsReadMutation = useMarkAsRead();
+  const updateStatusMutation = useUpdateContactStatus();
+  const updatePriorityMutation = useUpdateContactPriority();
+  const deleteMessageMutation = useDeleteMessage();
 
-      if (response.success) {
-        setMessages(response.data);
-        setPagination(response.pagination);
-      }
-    } catch (error) {
-      console.error("Error loading messages:", error);
-      toast.error("فشل في تحميل الرسائل");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      const response = await contactAPI.getStats();
-      if (response.success) {
-        setStats(response.data);
-      }
-    } catch (error) {
-      console.error("Error loading stats:", error);
-    }
-  };
+  const messages = messagesData?.data || [];
+  const pagination = messagesData?.pagination || {};
 
   const handleViewMessage = async (message) => {
     setSelectedMessage(message);
     setShowModal(true);
 
-    // Mark as read if status is 'new'
     if (message.status === "new") {
-      try {
-        await contactAPI.markAsRead(message.id);
-        loadMessages();
-        loadStats();
-      } catch (error) {
-        console.error("Error marking as read:", error);
-      }
+      markAsReadMutation.mutate(message.id);
     }
   };
 
-  const handleStatusUpdate = async (id, newStatus) => {
-    try {
-      const response = await contactAPI.updateStatus(id, newStatus);
-      if (response.success) {
-        toast.success("تم تحديث الحالة بنجاح");
-        loadMessages();
-        loadStats();
-        if (selectedMessage?.id === id) {
-          setSelectedMessage(response.data);
-        }
+  const handleStatusUpdate = (messageId, newStatus) => {
+    updateStatusMutation.mutate(
+      { messageId, status: newStatus },
+      {
+        onSuccess: () => {
+          setShowModal(false);
+        },
       }
-    } catch (error) {
-      console.error("Error updating status:", error);
-      toast.error("فشل في تحديث الحالة");
-    }
+    );
   };
 
-  const handlePriorityUpdate = async (id, newPriority) => {
-    try {
-      const response = await contactAPI.updatePriority(id, newPriority);
-      if (response.success) {
-        toast.success("تم تحديث الأولوية بنجاح");
-        loadMessages();
-        loadStats();
-        if (selectedMessage?.id === id) {
-          setSelectedMessage(response.data);
-        }
-      }
-    } catch (error) {
-      console.error("Error updating priority:", error);
-      toast.error("فشل في تحديث الأولوية");
-    }
+  const handlePriorityUpdate = (messageId, newPriority) => {
+    updatePriorityMutation.mutate({ messageId, priority: newPriority });
   };
-
-  const handleDelete = async (id) => {
+  const handleDelete = (messageId) => {
     if (!window.confirm("هل أنت متأكد من حذف هذه الرسالة؟")) return;
 
-    try {
-      const response = await contactAPI.delete(id);
-      if (response.success) {
-        toast.success("تم حذف الرسالة بنجاح");
-        loadMessages();
-        loadStats();
+    deleteMessageMutation.mutate(messageId, {
+      onSuccess: () => {
         setShowModal(false);
-      }
-    } catch (error) {
-      console.error("Error deleting message:", error);
-      toast.error("فشل في حذف الرسالة");
-    }
+      },
+    });
   };
 
   const getStatusBadge = (status) => {
@@ -204,8 +152,12 @@ export default function ContactMessagesAdmin() {
     });
   };
 
-  if (loading && !messages.length) {
+  if (loading) {
     return <Loading />;
+  }
+
+  if (error) {
+    return <Error />;
   }
 
   return (
@@ -328,7 +280,6 @@ export default function ContactMessagesAdmin() {
                   page: 1,
                   limit: 20,
                 });
-                loadMessages();
               }}
               variant="outline"
               className="flex items-center justify-center gap-2"
@@ -467,7 +418,6 @@ export default function ContactMessagesAdmin() {
   );
 }
 
-// Message Details Modal Component
 function MessageModal({
   message,
   onClose,
@@ -484,7 +434,7 @@ function MessageModal({
     try {
       await contactAPI.updateNotes(message.id, notes);
       toast.success("تم حفظ الملاحظات");
-    } catch (error) {
+    } catch {
       toast.error("فشل في حفظ الملاحظات");
     }
   };

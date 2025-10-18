@@ -146,33 +146,6 @@ export default function AboutHeroSection({
           />
         </div>
 
-        {/* CTA Button */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              نص الزر
-            </label>
-            <input
-              {...register("cta_text")}
-              type="text"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-              placeholder="تعرف على قصتنا"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              رابط الزر
-            </label>
-            <input
-              {...register("cta_link")}
-              type="text"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-              placeholder="#story"
-            />
-          </div>
-        </div>
-
         <div className="flex justify-end pt-4 border-t">
           <Button
             type="submit"

@@ -1,4 +1,3 @@
-// client/src/pages/admin/EmailVerification.jsx - مُصحح
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { authAPI } from "../../api/auth";
@@ -7,7 +6,7 @@ import Button from "../../components/common/Button";
 export default function EmailVerification() {
   const { token } = useParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState("loading"); // loading, success, error
+  const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [isResending, setIsResending] = useState(false);
   const [email, setEmail] = useState("");

@@ -1,10 +1,16 @@
-/* eslint-disable no-unused-vars */
-// client/src/pages/admin/AlbumsAdmin.jsx - مع إمكانية رفع الصور
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import {
+  useAlbums,
+  useAlbumsStats,
+  useCreateAlbum,
+  useUpdateAlbum,
+  useDeleteAlbum,
+  useUploadAlbumMedia,
+} from "../../hooks/queries/useAlbums";
 import { useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus,
   Search,
   Edit,
   Trash2,
@@ -13,35 +19,27 @@ import {
   Save,
   X,
   Star,
-  Calendar,
   Upload,
   ExternalLink,
   Camera,
   Trash,
+  Plus,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Button from "../../components/common/Button";
 import Badge from "../../components/common/Badge";
 import Loading from "../../utils/LoadingSettings";
-import { adminAPI } from "../../api/admin";
 import { confirmDelete } from "../../components/ConfirmToast";
 
 export default function AlbumsAdmin() {
   const navigate = useNavigate();
-  const [albums, setAlbums] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
-  const [stats, setStats] = useState({
-    total: 0,
-    published: 0,
-    draft: 0,
-    totalViews: 0,
-  });
+
   const [formData, setFormData] = useState({
     title: "",
     category: "macrame",
@@ -60,81 +58,64 @@ export default function AlbumsAdmin() {
     pages: 0,
   });
 
-  // باقي الوظائف كما هي...
-  useEffect(() => {
-    fetchAlbums();
-    fetchStats();
-  }, [pagination.page, filterStatus, filterCategory]);
+  const filters = useMemo(
+    () => ({
+      page: pagination.page,
+      limit: pagination.limit,
+      status: filterStatus !== "all" ? filterStatus : undefined,
+      ...(filterStatus !== "all" && { status: filterStatus }),
+      ...(filterCategory !== "all" && { category: filterCategory }),
+      ...(searchTerm.trim() && { search: searchTerm.trim() }),
+    }),
+    [
+      pagination.page,
+      pagination.limit,
+      filterStatus,
+      filterCategory,
+      searchTerm,
+    ]
+  );
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (pagination.page === 1) {
-        fetchAlbums();
-      } else {
-        setPagination((prev) => ({ ...prev, page: 1 }));
-      }
-    }, 500);
+  const { data: albumsData, isLoading: loading } = useAlbums(filters);
+  const { data: statsData } = useAlbumsStats();
 
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  const createAlbumMutation = useCreateAlbum();
+  const updateAlbumMutation = useUpdateAlbum();
+  const deleteAlbumMutation = useDeleteAlbum();
+  const uploadMediaMutation = useUploadAlbumMedia();
 
-  const fetchAlbums = async () => {
-    try {
-      setLoading(true);
-      const params = {
-        page: pagination.page,
-        limit: pagination.limit,
-      };
-      if (filterStatus !== "all") {
-        params.status = filterStatus;
-      }
-      if (filterCategory !== "all") {
-        params.category = filterCategory;
-      }
-      if (searchTerm && searchTerm.trim()) {
-        params.search = searchTerm.trim();
-      }
-      const response = await adminAPI.getAlbums(params);
-      if (response.success) {
-        setAlbums(response.data);
-        setPagination(response.pagination);
-      } else {
-        toast.error("فشل في تحميل الألبومات");
-      }
-    } catch (error) {
-      console.error("Error fetching albums:", error);
-      toast.error("حدث خطأ في تحميل البيانات");
-    } finally {
-      setLoading(false);
-    }
+  const albums = albumsData?.data || [];
+
+  const stats = {
+    total: statsData?.total || 0,
+    published: statsData?.published || 0,
+    draft: statsData?.total - statsData?.published || 0,
+    totalViews: albums.reduce((sum, album) => sum + (album.view_count || 0), 0),
   };
 
-  const fetchStats = async () => {
-    try {
-      const response = await adminAPI.getAlbumsStats();
-      if (response.success) {
-        setStats({
-          total: response.data.total || 0,
-          published: response.data.published || 0,
-          draft: response.data.total - response.data.published || 0,
-          totalViews: albums.reduce(
-            (sum, album) => sum + (album.view_count || 0),
-            0
-          ),
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    }
-  };
+  useEffect(() => {
+    const paginationData = albumsData?.pagination;
 
-  // معالجة اختيار الصور
+    if (paginationData) {
+      setPagination((prev) => ({
+        ...prev,
+        total: paginationData.total || 0,
+        pages: paginationData.pages || 0,
+      }));
+    }
+  }, [albumsData?.pagination]);
+
+  useEffect(() => {
+    if (searchTerm && pagination.page !== 1) {
+      setPagination((prev) => ({ ...prev, page: 1 }));
+    }
+  }, [searchTerm, pagination.page]);
+
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files);
 
-    // فلترة أنواع الملفات المقبولة
     const validFiles = files.filter(
-      (file) => file.type.startsWith("image/") && file.size <= 10 * 1024 * 1024 // 10MB
+      (file) => file.type.startsWith("image/") && file.size <= 10 * 1024 * 1024
     );
 
     if (validFiles.length !== files.length) {
@@ -145,7 +126,6 @@ export default function AlbumsAdmin() {
 
     setSelectedImages((prevImages) => [...prevImages, ...validFiles]);
 
-    // إنشاء معاينات للصور
     validFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -162,19 +142,16 @@ export default function AlbumsAdmin() {
     });
   };
 
-  // حذف صورة من المعاينة
   const removeImage = (index) => {
     setSelectedImages((prev) => prev.filter((_, i) => i !== index));
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // إنشاء ألبوم مع الصور
   const handleCreateAlbum = async (e) => {
     e.preventDefault();
     setUploading(true);
 
     try {
-      // 1. إنشاء الألبوم أولاً
       let tagsArray = formData.tags;
       if (typeof tagsArray === "string") {
         tagsArray = tagsArray
@@ -188,32 +165,29 @@ export default function AlbumsAdmin() {
         tags: tagsArray,
       };
 
-      const albumResponse = await adminAPI.createAlbum(albumData);
+      const newAlbum = await createAlbumMutation.mutateAsync(albumData);
+      const newAlbumId = newAlbum.id;
 
-      if (!albumResponse.success) {
-        throw new Error(albumResponse.message || "فشل في إنشاء الألبوم");
-      }
+      let uploadedCount = 0;
 
-      const newAlbumId = albumResponse.data.id;
-
-      // 2. رفع الصور إذا كانت موجودة
       if (selectedImages.length > 0) {
         const uploadFormData = new FormData();
-        selectedImages.forEach((file, index) => {
+        selectedImages.forEach((file) => {
           uploadFormData.append("media_files", file);
         });
 
-        const uploadResponse = await adminAPI.uploadMedia(
-          newAlbumId,
-          uploadFormData
-        );
+        try {
+          await uploadMediaMutation.mutateAsync({
+            albumId: newAlbumId,
+            images: uploadFormData,
+          });
 
-        if (!uploadResponse.success) {
-          console.warn("فشل في رفع بعض الصور:", uploadResponse.message);
-          toast.warning("تم إنشاء الألبوم ولكن فشل في رفع بعض الصور");
-        } else {
-          toast.success(
-            `تم إنشاء الألبوم مع ${selectedImages.length} صورة بنجاح!`
+          uploadedCount = selectedImages.length;
+          toast.success(`تم إنشاء الألبوم بنجاح مع ${uploadedCount} صورة`);
+        } catch (uploadError) {
+          console.error("Error uploading images:", uploadError);
+          toast.warning(
+            "تم إنشاء الألبوم ولكن فشل رفع بعض الصور. يمكنك رفعها لاحقاً من صفحة إدارة الصور."
           );
         }
       } else {
@@ -222,8 +196,6 @@ export default function AlbumsAdmin() {
 
       setShowCreateModal(false);
       resetForm();
-      fetchAlbums();
-      fetchStats();
     } catch (error) {
       console.error("Error creating album:", error);
       toast.error(error.message || "فشل في إنشاء الألبوم");
@@ -232,7 +204,6 @@ export default function AlbumsAdmin() {
     }
   };
 
-  // إعادة تعيين النموذج
   const resetForm = () => {
     setFormData({
       title: "",
@@ -246,7 +217,6 @@ export default function AlbumsAdmin() {
     setImagePreviews([]);
   };
 
-  // باقي الوظائف كما هي...
   const handleEditAlbum = async (e) => {
     e.preventDefault();
     setUploading(true);
@@ -265,17 +235,13 @@ export default function AlbumsAdmin() {
         tags: tagsArray,
       };
 
-      const response = await adminAPI.updateAlbum(selectedAlbum.id, albumData);
+      await updateAlbumMutation.mutateAsync({
+        albumId: selectedAlbum.id,
+        data: albumData,
+      });
 
-      if (response.success) {
-        toast.success("تم تحديث الألبوم بنجاح!");
-        setShowEditModal(false);
-        setSelectedAlbum(null);
-        fetchAlbums();
-        fetchStats();
-      } else {
-        toast.error(response.message || "فشل في تحديث الألبوم");
-      }
+      setShowEditModal(false);
+      setSelectedAlbum(null);
     } catch (error) {
       console.error("Error updating album:", error);
       toast.error("فشل في تحديث الألبوم");
@@ -285,16 +251,8 @@ export default function AlbumsAdmin() {
   };
 
   const handleDeleteAlbum = (albumId) => {
-    confirmDelete("هذا الألبوم", async () => {
-      try {
-        const response = await adminAPI.deleteAlbum(albumId);
-        if (response.success) {
-          setAlbums((prev) => prev.filter((album) => album.id !== albumId));
-          toast.success("تم حذف الألبوم بنجاح");
-        }
-      } catch (error) {
-        toast.error("فشل في حذف الألبوم");
-      }
+    confirmDelete("هذا الألبوم", () => {
+      deleteAlbumMutation.mutate(albumId);
     });
   };
 
@@ -305,7 +263,6 @@ export default function AlbumsAdmin() {
 
       const newStatus = album.status === "published" ? "draft" : "published";
 
-      // معالجة tags إذا كانت string
       let tagsArray = album.tags || [];
       if (typeof tagsArray === "string") {
         try {
@@ -315,7 +272,6 @@ export default function AlbumsAdmin() {
         }
       }
 
-      // إرسال جميع البيانات المطلوبة
       const updateData = {
         title: album.title,
         category: album.category,
@@ -325,18 +281,17 @@ export default function AlbumsAdmin() {
         tags: tagsArray,
       };
 
-      const response = await adminAPI.updateAlbum(albumId, updateData);
+      await updateAlbumMutation.mutateAsync({
+        albumId,
+        data: updateData,
+      });
 
-      if (response.success) {
-        toast.success(
-          `تم تغيير الحالة إلى ${
-            newStatus === "published" ? "منشور" : "مسودة"
-          }!`
-        );
-        fetchAlbums();
-        fetchStats();
-      } else {
-        toast.error("فشل في تغيير الحالة");
+      if (
+        (filterStatus === "published" && newStatus === "draft") ||
+        (filterStatus === "draft" && newStatus === "published")
+      ) {
+        setFilterStatus("all");
+        toast.info("تم تغيير الفلتر إلى 'الكل' لعرض الألبوم المحدّث");
       }
     } catch (error) {
       console.error("Error toggling status:", error);
@@ -367,18 +322,6 @@ export default function AlbumsAdmin() {
     setShowEditModal(true);
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("ar", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const handlePageChange = (newPage) => {
-    setPagination((prev) => ({ ...prev, page: newPage }));
-  };
-
   const handleManageMedia = (album) => {
     navigate(`/admin/albums/${album.id}/media`);
   };
@@ -388,7 +331,7 @@ export default function AlbumsAdmin() {
     window.open(url, "_blank");
   };
 
-  if (loading && albums.length === 0) {
+  if (loading) {
     return <Loading />;
   }
 
@@ -544,7 +487,7 @@ export default function AlbumsAdmin() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {albums.map((album, index) => (
+              {albums.map((album) => (
                 <tr key={album.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -619,6 +562,31 @@ export default function AlbumsAdmin() {
               ))}
             </tbody>
           </table>
+          <div className="flex justify-between items-center p-4 border-t">
+            <div className="text-sm text-gray-600">
+              صفحة {pagination.page} من {pagination.pages}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() =>
+                  setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
+                }
+                disabled={pagination.page === 1}
+                variant="outline"
+              >
+                السابق
+              </Button>
+              <Button
+                onClick={() =>
+                  setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
+                }
+                disabled={pagination.page >= pagination.pages}
+                variant="outline"
+              >
+                التالي
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 

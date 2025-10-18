@@ -15,12 +15,11 @@ export default function SectionOrderSettings({ data, onSave, saving }) {
     featured_albums: "الألبومات المميزة",
     testimonials: "التقييمات",
     dual_cta: "الدعوة لاتخاذ إجراء",
-    whatsapp_float: "واتساب",
+    whatsapp_float: "البوت شات",
   };
 
   useEffect(() => {
     if (data) {
-      // البحث عن البيانات في المكان الصحيح
       const sectionsData = data.home_sections || data;
 
       const initialSections = Object.keys(sectionNames).map((key) => ({

@@ -1,148 +1,122 @@
-// client/src/pages/admin/AdminHomeSettings.jsx - النسخة المحدثة للاتصال بالباك إند
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import {
+  useAdminSettings,
+  useUpdateHomeSlider,
+  useUpdateHomeAbout,
+  useUpdateHomeCTA,
+  useUpdateHomeAlbums,
+  useUpdateHomeTestimonials,
+  useUpdateHomeWhatsApp,
+  useUpdateHomeSections,
+  useUpdateSiteMeta,
+  useUploadFile,
+} from "../../hooks/queries/useSettings";
 import { toast } from "react-hot-toast";
 import {
-  Save,
   Edit,
   Settings,
   Image,
   MessageSquare,
   Palette,
   Users,
-  Smartphone,
   ToggleLeft,
   ToggleRight,
 } from "lucide-react";
-import Button from "../../components/common/Button";
 import SliderSettings from "../../components/admin/settings/SliderSettings";
 import AboutSettings from "../../components/admin/settings/AboutSettings";
 import CTASettings from "../../components/admin/settings/CTASettings";
 import AlbumsSettings from "../../components/admin/settings/AlbumsSettings";
 import TestimonialsSettings from "../../components/admin/settings/TestimonialsSettings";
-import WhatsAppSettings from "../../components/admin/settings/WhatsAppSettings";
 import SEOSettings from "../../components/admin/settings/SEOSettings";
-import { adminAPI } from "../../api/admin";
 import Loading from "../../utils/Loading";
 import SectionOrderSettings from "../../components/admin/settings/SectionOrderSettings";
 
 export default function AdminHomeSettings() {
   const [activeTab, setActiveTab] = useState("slider");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [homeSettings, setHomeSettings] = useState(null);
 
-  // تحميل جميع إعدادات الصفحة الرئيسية
-  useEffect(() => {
-    const fetchHomeSettings = async () => {
-      try {
-        setLoading(true);
-        const response = await adminAPI.getSettings();
-        setHomeSettings(response.data);
-      } catch (error) {
-        console.error("Error fetching home settings:", error);
-        toast.error("فشل في تحميل الإعدادات");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: homeSettings, isLoading: loading } = useAdminSettings();
 
-    fetchHomeSettings();
-  }, []);
+  const updateSliderMutation = useUpdateHomeSlider();
+  const updateAboutMutation = useUpdateHomeAbout();
+  const updateCTAMutation = useUpdateHomeCTA();
+  const updateAlbumsMutation = useUpdateHomeAlbums();
+  const updateTestimonialsMutation = useUpdateHomeTestimonials();
+  const updateWhatsAppMutation = useUpdateHomeWhatsApp();
+  const updateSectionsMutation = useUpdateHomeSections();
+  const updateSiteMetaMutation = useUpdateSiteMeta();
+  const uploadFileMutation = useUploadFile();
 
-  const saveSection = async (sectionName, data) => {
-    setSaving(true);
-    try {
-      let response;
-      switch (sectionName) {
-        case "slider":
-          response = await adminAPI.updateHomeSlider(data);
-          break;
-        case "about":
-          response = await adminAPI.updateHomeAbout(data);
-          break;
-        case "cta":
-          response = await adminAPI.updateHomeCTA(data);
-          break;
-        case "albums":
-          response = await adminAPI.updateHomeAlbums(data);
-          break;
-        case "testimonials":
-          response = await adminAPI.updateHomeTestimonials(data);
-          break;
-        case "whatsapp":
-          response = await adminAPI.updateHomeWhatsApp(data);
-          break;
-        case "home_sections":
-          response = await adminAPI.updateHomeSections(data);
-          break;
-        case "seo":
-          response = await adminAPI.updateSiteMeta(data);
-          break;
-        default:
-          throw new Error(`Unknown section: ${sectionName}`);
-      }
-      if (response.success) {
-        toast.success(
-          `تم حفظ إعدادات ${getSectionArabicName(sectionName)} بنجاح`
-        );
-        const updatedSettings = await adminAPI.getSettings();
-        setHomeSettings(updatedSettings.data);
+  // تجميع جميع mutations في كائن واحد
+  const mutations = {
+    slider: updateSliderMutation,
+    about: updateAboutMutation,
+    cta: updateCTAMutation,
+    albums: updateAlbumsMutation,
+    testimonials: updateTestimonialsMutation,
+    whatsapp: updateWhatsAppMutation,
+    home_sections: updateSectionsMutation,
+    seo: updateSiteMetaMutation,
+  };
 
-        return true;
-      } else {
-        toast.error(response.message || "فشل في الحفظ");
-        return false;
-      }
-    } catch (error) {
-      console.error(`Error saving ${sectionName}:`, error);
-      toast.error("حدث خطأ أثناء الحفظ");
-      return false;
-    } finally {
-      setSaving(false);
+  const saving =
+    updateSliderMutation.isPending ||
+    updateAboutMutation.isPending ||
+    updateCTAMutation.isPending ||
+    updateAlbumsMutation.isPending ||
+    updateTestimonialsMutation.isPending ||
+    updateWhatsAppMutation.isPending ||
+    updateSectionsMutation.isPending ||
+    updateSiteMetaMutation.isPending;
+
+  const saveSection = (sectionName, data) => {
+    const mutation = mutations[sectionName];
+
+    if (!mutation) {
+      toast.error(`قسم غير معروف: ${sectionName}`);
+      return Promise.resolve(false);
     }
+
+    return new Promise((resolve) => {
+      mutation.mutate(data, {
+        onSuccess: () => resolve(true),
+        onError: () => resolve(false),
+      });
+    });
   };
 
   const handleImageUpload = async (event, fieldName, setValue) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    // Validation
     if (!file.type.startsWith("image/")) {
       toast.error("يرجى اختيار ملف صورة صحيح");
       return;
     }
+
     if (file.size > 5 * 1024 * 1024) {
       toast.error("حجم الصورة يجب أن يكون أقل من 5 ميجابايت");
       return;
     }
-    toast.loading("جاري رفع الصورة...", { id: fieldName });
+
+    const loadingToastId = toast.loading("جاري رفع الصورة...");
+
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const response = await adminAPI.uploadFile(formData);
-      if (response.success && response.data?.url) {
-        setValue(fieldName, response.data.url);
-        toast.success("تم رفع الصورة بنجاح", { id: fieldName });
+
+      const data = await uploadFileMutation.mutateAsync(formData);
+
+      if (data?.url) {
+        setValue(fieldName, data.url);
+        toast.success("تم رفع الصورة بنجاح", { id: loadingToastId });
       } else {
-        throw new Error(response.message || "No URL in response");
+        throw new Error("لا يوجد رابط في الاستجابة");
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("فشل في رفع الصورة", { id: fieldName });
+      toast.error("فشل في رفع الصورة", { id: loadingToastId });
     }
-  };
-
-  const getSectionArabicName = (sectionKey) => {
-    const names = {
-      slider: "السلايدر",
-      about: "النبذة التعريفية",
-      cta: "الدعوة لاتخاذ إجراء",
-      albums: "الألبومات المميزة",
-      testimonials: "التقييمات",
-      whatsapp: "واتساب",
-      seo: "SEO",
-      home_sections: "ترتيب الأقسام",
-    };
-    return names[sectionKey] || sectionKey;
   };
 
   if (loading) {
@@ -186,12 +160,6 @@ export default function AdminHomeSettings() {
           label="التقييمات"
           active={activeTab === "testimonials"}
           onClick={() => setActiveTab("testimonials")}
-        />
-        <TabButton
-          icon={<Smartphone className="w-5 h-5" />}
-          label="واتساب"
-          active={activeTab === "whatsapp"}
-          onClick={() => setActiveTab("whatsapp")}
         />
         <TabButton
           icon={<ToggleLeft className="w-5 h-5" />}
@@ -246,13 +214,7 @@ export default function AdminHomeSettings() {
             saving={saving}
           />
         )}
-        {activeTab === "whatsapp" && homeSettings && (
-          <WhatsAppSettings
-            data={homeSettings}
-            onSave={(data) => saveSection("whatsapp", data)}
-            saving={saving}
-          />
-        )}
+
         {activeTab === "seo" && homeSettings && (
           <SEOSettings
             data={homeSettings}

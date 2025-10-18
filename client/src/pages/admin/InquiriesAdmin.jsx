@@ -394,7 +394,6 @@ export default function InquiriesAdmin() {
                               inquiry.customer_name
                             )
                           }
-                          //                                      ⭐ أضف رقم الهاتف هنا
                           className="text-green-600 hover:text-green-900 p-1 rounded"
                           title="فتح واتساب"
                         >

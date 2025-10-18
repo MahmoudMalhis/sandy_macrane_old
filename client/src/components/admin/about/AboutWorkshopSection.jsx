@@ -180,14 +180,6 @@ export default function AboutWorkshopSection({
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
                       placeholder="عنوان الصورة (مثال: أدوات العمل)"
                     />
-
-                    {/* Image Alt Text */}
-                    <input
-                      {...register(`images.${index}.alt`)}
-                      type="text"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-                      placeholder="وصف بديل للصورة"
-                    />
                   </div>
                 </div>
               );

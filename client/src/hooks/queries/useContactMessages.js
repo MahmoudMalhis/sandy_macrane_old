@@ -20,7 +20,11 @@ export const useContactMessages = (filters = {}) => {
         pagination: response.pagination,
       };
     },
+    placeholderData: (previousData) => previousData,
     staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 };
 
@@ -58,6 +62,38 @@ export const useDeleteMessage = () => {
     },
     onError: (error) => {
       toast.error(error.message || "فشل في الحذف");
+    },
+  });
+};
+
+export const useUpdateContactStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ messageId, status }) =>
+      contactAPI.updateStatus(messageId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contactKeys.all });
+      toast.success("تم تحديث الحالة بنجاح");
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل في تحديث الحالة");
+    },
+  });
+};
+
+export const useUpdateContactPriority = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ messageId, priority }) =>
+      contactAPI.updatePriority(messageId, priority),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contactKeys.all });
+      toast.success("تم تحديث الأولوية بنجاح");
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل في تحديث الأولوية");
     },
   });
 };

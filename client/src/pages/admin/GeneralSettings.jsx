@@ -1,4 +1,3 @@
-// client/src/pages/admin/GeneralSettings.jsx
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
@@ -9,7 +8,6 @@ import {
   Globe,
   Facebook,
   Instagram,
-  Palette,
 } from "lucide-react";
 import Button from "../../components/common/Button";
 import Loading from "../../utils/LoadingSettings";
@@ -137,19 +135,17 @@ export default function GeneralSettings() {
     const names = {
       contact: "معلومات التواصل",
       social: "وسائل التواصل الاجتماعي",
-      branding: "الهوية البصرية",
     };
     return names[sectionKey] || sectionKey;
   };
-
-  if (loading) {
-    return <Loading />;
-  }
 
   const onSubmit = async (data) => {
     await saveSettings(data);
   };
 
+  if (loading) {
+    return <Loading />;
+  }
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 flex items-center">
@@ -170,12 +166,6 @@ export default function GeneralSettings() {
           label="وسائل التواصل"
           active={activeTab === "social"}
           onClick={() => setActiveTab("social")}
-        />
-        <TabButton
-          icon={<Palette className="w-5 h-5" />}
-          label="الهوية البصرية"
-          active={activeTab === "branding"}
-          onClick={() => setActiveTab("branding")}
         />
       </div>
 
@@ -205,7 +195,6 @@ export default function GeneralSettings() {
   );
 }
 
-// مكون زر التبويب
 const TabButton = ({ icon, label, active, onClick }) => (
   <button
     className={`flex items-center px-4 py-2 rounded-lg border whitespace-nowrap ${
@@ -221,7 +210,6 @@ const TabButton = ({ icon, label, active, onClick }) => (
   </button>
 );
 
-// مكون إعدادات التواصل
 const ContactSettings = ({ register, errors }) => (
   <div className="space-y-6">
     <h2 className="text-xl font-semibold mb-4">معلومات التواصل الأساسية</h2>
@@ -283,46 +271,6 @@ const ContactSettings = ({ register, errors }) => (
         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
         placeholder="نابلس، فلسطين"
       />
-    </div>
-
-    <div className="border rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">ساعات العمل</h3>
-
-      <div className="grid md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            من الساعة
-          </label>
-          <input
-            {...register("contact_business_hours_start")}
-            type="time"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            إلى الساعة
-          </label>
-          <input
-            {...register("contact_business_hours_end")}
-            type="time"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            أيام العمل
-          </label>
-          <input
-            {...register("contact_business_hours_days")}
-            type="text"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-            placeholder="الأحد - الخميس"
-          />
-        </div>
-      </div>
     </div>
   </div>
 );

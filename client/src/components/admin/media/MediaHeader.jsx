@@ -81,7 +81,7 @@ const MediaHeader = ({ album, onBackClick, onAlbumUpdate }) => {
             className="flex items-center gap-2 hover:text-purple transition-colors"
           >
             <ArrowRight size={20} />
-            <span>العودة للمعرض</span>
+            <span>العودة للالبومات</span>
           </button>
         </div>
       </div>

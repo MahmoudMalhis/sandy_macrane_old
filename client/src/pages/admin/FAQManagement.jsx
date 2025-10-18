@@ -1,12 +1,10 @@
-/* eslint-disable no-unused-vars */
-import { useState, useEffect } from "react";
-import { toast } from "react-hot-toast";
+import { useEffect, useState } from "react";
+import { useAdminFAQs, useUpdateFAQs } from "../../hooks/queries/useFAQ";
 import { useForm, useFieldArray } from "react-hook-form";
 import {
   Save,
   HelpCircle,
   Plus,
-  Eye,
   Edit,
   Trash2,
   DollarSign,
@@ -22,12 +20,13 @@ import {
 } from "lucide-react";
 import Button from "../../components/common/Button";
 import Loading from "../../utils/LoadingSettings";
-import { settingsAPI } from "../../api/settings";
 
 export default function FAQManagement() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+  const { data: faqData, isLoading: loading } = useAdminFAQs();
+  const updateFAQsMutation = useUpdateFAQs();
+
+  const saving = updateFAQsMutation.isPending;
 
   const {
     register,
@@ -42,7 +41,7 @@ export default function FAQManagement() {
     },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control,
     name: "faqs",
   });
@@ -60,72 +59,17 @@ export default function FAQManagement() {
     { id: "returns", name: "الإرجاع", icon: RefreshCw },
   ];
 
+  // ✅ تحميل البيانات في الـ form عند تغيير faqData
   useEffect(() => {
-    loadFAQSettings();
-  }, []);
-
-  const loadFAQSettings = async () => {
-    try {
-      setLoading(true);
-      const response = await settingsAPI.getFAQSettings();
-
-      if (response?.success && response.data?.faqs) {
-        setValue("faqs", response.data.faqs);
-      } else {
-        // Load default FAQs if none exist
-        setValue("faqs", getDefaultFAQs());
-      }
-    } catch (error) {
-      console.error("Error loading FAQ settings:", error);
-      toast.error("فشل في تحميل إعدادات الأسئلة الشائعة");
-      // Load defaults on error
-      setValue("faqs", getDefaultFAQs());
-    } finally {
-      setLoading(false);
+    if (faqData?.faqs) {
+      setValue("faqs", faqData.faqs);
+    } else {
+      setValue("faqs");
     }
-  };
+  }, [faqData, setValue]);
 
-  const getDefaultFAQs = () => [
-    {
-      id: Date.now() + 1,
-      category: "general",
-      question: "ما هي المكرمية وما الذي يميزها؟",
-      answer:
-        "المكرمية هي فن قديم يعتمد على عقد الحبال والخيوط لإنشاء تصاميم جميلة ومتينة. ما يميز منتجاتنا:\n• صناعة يدوية 100% بعناية فائقة\n• استخدام خامات عالية الجودة ومستدامة\n• تصاميم فريدة ومبتكرة\n• إمكانية التخصيص حسب الطلب\n• قطع فنية عملية تجمع بين الجمال والوظيفة",
-    },
-    {
-      id: Date.now() + 2,
-      category: "orders",
-      question: "كم يستغرق تنفيذ الطلب؟",
-      answer:
-        "يعتمد وقت التنفيذ على نوع وحجم القطعة:\n• القطع البسيطة: 2-3 أيام\n• القطع المتوسطة: 4-7 أيام\n• القطع الكبيرة والمعقدة: 7-14 يوم\n• الطلبات المخصصة: نناقش المدة معك\n\nسنخبرك بالوقت المتوقع بالضبط عند تأكيد الطلب.",
-    },
-    {
-      id: Date.now() + 3,
-      category: "pricing",
-      question: "كيف يتم حساب أسعار المنتجات؟",
-      answer:
-        "تعتمد الأسعار على عدة عوامل:\n• حجم القطعة ومقاساتها\n• تعقيد التصميم والتفاصيل\n• نوع الخامات المستخدمة\n• الوقت المستغرق في التنفيذ\n• إضافة تخصيصات خاصة\n\nنضمن لك أسعار تنافسية مقابل جودة عالية وعمل فني متقن.",
-    },
-  ];
-
-  const onSubmit = async (data) => {
-    setSaving(true);
-    try {
-      const response = await settingsAPI.updateFAQSettings(data);
-
-      if (response?.success) {
-        toast.success("تم حفظ الأسئلة الشائعة بنجاح");
-        setEditingIndex(null);
-      } else {
-        throw new Error("فشل في الحفظ");
-      }
-    } catch (error) {
-      console.error("Error saving FAQ settings:", error);
-      toast.error(error.message || "فشل في حفظ الإعدادات");
-    } finally {
-      setSaving(false);
-    }
+  const onSubmit = (formData) => {
+    updateFAQsMutation.mutate(formData);
   };
 
   const addNewFAQ = () => {
@@ -146,10 +90,6 @@ export default function FAQManagement() {
         setEditingIndex(null);
       }
     }
-  };
-
-  const handlePreview = () => {
-    window.open("/faq", "_blank");
   };
 
   const getCategoryIcon = (categoryId) => {
@@ -202,7 +142,6 @@ export default function FAQManagement() {
                 <HelpCircle className="w-10 h-10 text-purple opacity-20" />
               </div>
             </div>
-
           </div>
           <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
             <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">

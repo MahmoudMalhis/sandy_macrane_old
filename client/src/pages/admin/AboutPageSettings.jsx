@@ -1,7 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import {
+  useAdminAboutPage,
+  useUpdateAboutHero,
+  useUpdateAboutStats,
+  useUpdateAboutStory,
+  useUpdateAboutValues,
+  useUpdateAboutWorkshop,
+  useUpdateAboutTimeline,
+  useUpdateAboutSEO,
+  useUploadAboutImage,
+} from "../../hooks/queries/useAboutPage";
 import { toast } from "react-hot-toast";
 import {
-  Eye,
   FileText,
   Heart,
   Calendar,
@@ -9,10 +19,7 @@ import {
   TrendingUp,
   Camera,
 } from "lucide-react";
-import Button from "../../components/common/Button";
 import Loading from "../../utils/Loading";
-import { aboutPageAPI } from "../../api/aboutPage";
-
 import AboutHeroSection from "../../components/admin/about/AboutHeroSection";
 import AboutStorySection from "../../components/admin/about/AboutStorySection";
 import AboutValuesSection from "../../components/admin/about/AboutValuesSection";
@@ -20,7 +27,6 @@ import AboutWorkshopSection from "../../components/admin/about/AboutWorkshopSect
 import AboutTimelineSection from "../../components/admin/about/AboutTimelineSection";
 import AboutSEOSection from "../../components/admin/about/AboutSEOSection";
 import AboutStatsSection from "../../components/admin/about/AboutStatsSection";
-import { adminAPI } from "../../api/admin";
 
 const TabButton = ({ icon, label, active, onClick }) => (
   <button
@@ -39,101 +45,68 @@ const TabButton = ({ icon, label, active, onClick }) => (
 
 export default function AboutPageSettings() {
   const [activeTab, setActiveTab] = useState("hero");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState(null);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
+  const { data: settings, isLoading: loading } = useAdminAboutPage();
 
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      const response = await aboutPageAPI.getAdmin();
+  const updateHeroMutation = useUpdateAboutHero();
+  const updateStatsMutation = useUpdateAboutStats();
+  const updateStoryMutation = useUpdateAboutStory();
+  const updateValuesMutation = useUpdateAboutValues();
+  const updateWorkshopMutation = useUpdateAboutWorkshop();
+  const updateTimelineMutation = useUpdateAboutTimeline();
+  const updateSEOMutation = useUpdateAboutSEO();
+  const uploadImageMutation = useUploadAboutImage();
 
-      if (response.success) {
-        setSettings(response.data);
-      } else {
-        toast.error("فشل في تحميل الإعدادات");
-      }
-    } catch (error) {
-      console.error("Error fetching settings:", error);
-      toast.error("حدث خطأ في تحميل الإعدادات");
-    } finally {
-      setLoading(false);
-    }
+  const mutations = {
+    hero: updateHeroMutation,
+    stats: updateStatsMutation,
+    story: updateStoryMutation,
+    values: updateValuesMutation,
+    workshop: updateWorkshopMutation,
+    timeline: updateTimelineMutation,
+    seo: updateSEOMutation,
   };
 
-  const saveSection = async (sectionName, data) => {
-    setSaving(true);
-    try {
-      let response;
+  const saving = Object.values(mutations).some((m) => m.isPending);
+  const saveSection = (sectionName, data) => {
+    const mutation = mutations[sectionName];
 
-      switch (sectionName) {
-        case "hero":
-          response = await aboutPageAPI.updateHero(data);
-          break;
-        case "stats":
-          response = await aboutPageAPI.updateStats(data);
-          break;
-        case "story":
-          response = await aboutPageAPI.updateStory(data);
-          break;
-        case "values":
-          response = await aboutPageAPI.updateValues(data);
-          break;
-        case "workshop":
-          response = await aboutPageAPI.updateWorkshop(data);
-          break;
-        case "timeline":
-          response = await aboutPageAPI.updateTimeline(data);
-          break;
-        case "seo":
-          response = await aboutPageAPI.updateSEO(data);
-          break;
-        default:
-          throw new Error("Unknown section");
-      }
-
-      if (response.success) {
-        toast.success("تم الحفظ بنجاح");
-        setSettings((prev) => ({
-          ...prev,
-          [`about_${sectionName}`]: data,
-        }));
-      } else {
-        toast.error("فشل في الحفظ");
-      }
-    } catch (error) {
-      console.error("Error saving section:", error);
-      toast.error("حدث خطأ أثناء الحفظ");
-    } finally {
-      setSaving(false);
+    if (!mutation) {
+      toast.error(`قسم غير معروف: ${sectionName}`);
+      return Promise.resolve(false);
     }
+
+    return new Promise((resolve) => {
+      mutation.mutate(data, {
+        onSuccess: () => resolve(true),
+        onError: () => resolve(false),
+      });
+    });
   };
 
   const handleImageUpload = async (file) => {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    if (!file) return null;
 
-      const response = await adminAPI.uploadFile(formData);
-
-      if (response.success) {
-        return response.data.url;
-      } else {
-        throw new Error("Upload failed");
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("فشل رفع الصورة");
+    if (!file.type.startsWith("image/")) {
+      toast.error("يرجى اختيار ملف صورة صحيح");
       return null;
     }
-  };
 
-  const handlePreview = () => {
-    window.open("/about", "_blank");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("حجم الصورة يجب أن يكون أقل من 5 ميجابايت");
+      return null;
+    }
+
+    const loadingToastId = toast.loading("جاري رفع الصورة...");
+
+    try {
+      const url = await uploadImageMutation.mutateAsync(file);
+      toast.success("تم رفع الصورة بنجاح", { id: loadingToastId });
+      return url;
+    } catch {
+      toast.dismiss(loadingToastId);
+      return null;
+    }
   };
 
   if (loading) {

@@ -14,8 +14,6 @@ export const albumsKeys = {
   media: (albumId) => [...albumsKeys.all, "media", albumId],
 };
 
-// ==================== QUERIES ====================
-
 export const useAlbums = (filters = {}) => {
   return useQuery({
     queryKey: albumsKeys.list(filters),
@@ -23,17 +21,19 @@ export const useAlbums = (filters = {}) => {
       const params = {
         page: filters.page || 1,
         limit: filters.limit || 12,
+        ...(filters.status &&
+          filters.status !== "all" && { status: filters.status }), 
         ...(filters.category &&
           filters.category !== "all" && { category: filters.category }),
         ...(filters.search && { search: filters.search }),
         ...(filters.sort && { sort: filters.sort }),
       };
-      const response = await albumsAPI.getAll(params);
+      const response = await adminAPI.getAlbums(params); 
       if (!response.success) throw new Error("فشل في تحميل الألبومات");
       return response;
     },
     staleTime: 3 * 60 * 1000,
-    keepPreviousData: true, // Important for pagination
+    placeholderData: (previousData) => previousData, 
   });
 };
 
@@ -75,6 +75,19 @@ export const useFeaturedAlbums = (limit = 6) => {
   });
 };
 
+export const useAlbumsStats = () => {
+  return useQuery({
+    queryKey: [...albumsKeys.all, "stats"],
+    queryFn: async () => {
+      const response = await adminAPI.getAlbumsStats();
+      if (!response.success) throw new Error("فشل في تحميل الإحصائيات");
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+};
+
 export const useAlbumMedia = (albumId) => {
   return useQuery({
     queryKey: albumsKeys.media(albumId),
@@ -88,11 +101,6 @@ export const useAlbumMedia = (albumId) => {
   });
 };
 
-// ==================== MUTATIONS ====================
-
-/**
- * إنشاء ألبوم جديد
- */
 export const useCreateAlbum = () => {
   const queryClient = useQueryClient();
 
@@ -113,9 +121,6 @@ export const useCreateAlbum = () => {
   });
 };
 
-/**
- * تحديث بيانات ألبوم
- */
 export const useUpdateAlbum = () => {
   const queryClient = useQueryClient();
 
@@ -127,13 +132,12 @@ export const useUpdateAlbum = () => {
       return response.data;
     },
     onSuccess: (data, variables) => {
-      // Update specific album cache
       queryClient.invalidateQueries({
         queryKey: albumsKeys.detail(variables.albumId),
       });
-      // Update lists
+
       queryClient.invalidateQueries({ queryKey: albumsKeys.lists() });
-      // Update featured if applicable
+
       queryClient.invalidateQueries({ queryKey: albumsKeys.all });
       toast.success("تم تحديث الألبوم بنجاح");
     },
@@ -143,9 +147,6 @@ export const useUpdateAlbum = () => {
   });
 };
 
-/**
- * حذف ألبوم
- */
 export const useDeleteAlbum = () => {
   const queryClient = useQueryClient();
 
@@ -166,9 +167,6 @@ export const useDeleteAlbum = () => {
   });
 };
 
-/**
- * تحديث حالة ألبوم (published/draft)
- */
 export const useUpdateAlbumStatus = () => {
   const queryClient = useQueryClient();
 
@@ -189,9 +187,6 @@ export const useUpdateAlbumStatus = () => {
   });
 };
 
-/**
- * رفع صور للألبوم
- */
 export const useUploadAlbumMedia = () => {
   const queryClient = useQueryClient();
 
@@ -217,9 +212,6 @@ export const useUploadAlbumMedia = () => {
   });
 };
 
-/**
- * حذف صورة من ألبوم
- */
 export const useDeleteAlbumMedia = () => {
   const queryClient = useQueryClient();
 
@@ -242,9 +234,6 @@ export const useDeleteAlbumMedia = () => {
   });
 };
 
-/**
- * تعيين صورة غلاف للألبوم
- */
 export const useSetAlbumCover = () => {
   const queryClient = useQueryClient();
 
@@ -266,6 +255,90 @@ export const useSetAlbumCover = () => {
     },
     onError: (error) => {
       toast.error(error.message || "فشل في تعيين الغلاف");
+    },
+  });
+};
+
+export const useUpdateMedia = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ mediaId, updateData }) => {
+      const response = await adminAPI.updateMedia(mediaId, updateData);
+      if (!response.success)
+        throw new Error(response.message || "فشل في تحديث الوسائط");
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: albumsKeys.all });
+      toast.success("تم تحديث الوسائط بنجاح");
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل في تحديث الوسائط");
+    },
+  });
+};
+
+export const useBulkDeleteMedia = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (mediaIds) => {
+      const response = await adminAPI.deleteMedia(mediaIds);
+      if (!response.success)
+        throw new Error(response.message || "فشل في حذف الوسائط");
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: albumsKeys.all });
+      toast.success("تم حذف الوسائط المحددة");
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل في حذف الوسائط");
+    },
+  });
+};
+
+export const useReorderMedia = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ albumId, mediaIds }) => {
+      const response = await adminAPI.reorderMedia(albumId, mediaIds);
+      if (!response.success)
+        throw new Error(response.message || "فشل في حفظ الترتيب");
+      return response;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: albumsKeys.media(variables.albumId),
+      });
+      toast.success("تم حفظ الترتيب الجديد");
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل في حفظ الترتيب");
+    },
+  });
+};
+
+export const useUpdateAlbumTitle = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ albumId, title }) => {
+      const response = await adminAPI.updateAlbum(albumId, { title });
+      if (!response.success)
+        throw new Error(response.message || "فشل في تحديث اسم الألبوم");
+      return response;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: albumsKeys.detail(variables.albumId),
+      });
+      toast.success("تم تحديث اسم الألبوم بنجاح");
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل في تحديث اسم الألبوم");
     },
   });
 };
