@@ -1,6 +1,7 @@
-/* eslint-disable no-unused-vars */
-// client/src/pages/About.jsx
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { usePublicAboutPage } from "../hooks/queries/useAboutPage";
+import { usePublicSettings } from "../hooks/queries/useSettings";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import {
@@ -14,106 +15,30 @@ import {
   Calendar,
   ImageIcon,
 } from "lucide-react";
-import { adminAPI } from "../api/admin";
 import ApplyNow from "../components/ApplyNow";
 import Loading from "../utils/LoadingSettings";
-import { aboutPageAPI } from "../api/aboutPage";
-import { settingsAPI } from "../api/settings";
 import { openWhatsApp } from "../utils/whatsapp";
 
 export default function About() {
-  const [isVisible, setIsVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [aboutData, setAboutData] = useState(null);
-  const [contactInfo, setContactInfo] = useState(null);
+  const [isVisible, setIsVisible] = useState(true);
 
+  const { data: aboutData, isLoading: loading } = usePublicAboutPage();
+
+  const { data: publicSettings } = usePublicSettings();
 
   useEffect(() => {
     setIsVisible(true);
-    loadAboutData();
   }, []);
 
-const loadAboutData = async () => {
-  try {
-    setLoading(true);
-
-    // جلب بيانات الصفحة وبيانات الاتصال معاً
-    const [aboutResponse, statsResponse, settingsResponse] = await Promise.all([
-      aboutPageAPI.getPublic(),
-      adminAPI.getStats().catch(() => null),
-      settingsAPI.getPublic().catch(() => null), // ⭐ إضافة جديدة
-    ]);
-
-    // معالجة بيانات الصفحة
-    if (aboutResponse?.success) {
-      setAboutData(aboutResponse.data || getDefaultAboutData());
-    } else {
-      setAboutData(getDefaultAboutData());
-    }
-
-    // ⭐ معالجة بيانات الاتصال (جديد)
-    if (settingsResponse?.success) {
-      setContactInfo({
-        whatsapp:
-          settingsResponse.data.contact_info?.whatsapp ||
-          settingsResponse.data.whatsapp_owner,
-      });
-    }
-  } catch (error) {
-    console.error("Error loading about data:", error);
-    setAboutData(getDefaultAboutData());
-  } finally {
-    setLoading(false);
-  }
-};
-
-const handleWhatsAppClick = () => {
-  const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
-  openWhatsApp(contactInfo?.whatsapp, message);
+  const contactInfo = {
+    whatsapp:
+      publicSettings?.contact_info?.whatsapp || publicSettings?.whatsapp_owner,
   };
-  
-  const getDefaultAboutData = () => ({
-    about_hero: {
-      title: "قصة **ساندي** \\n مع المكرمية",
-      subtitle: "قصة إبداع وشغف",
-      description: "نحن فريق متخصص...",
-      background_image: "",
-      cta_text: "تعرف على قصتنا",
-      cta_link: "#story",
-    },
-    about_stats: {
-      items: [
-        { number: "500+", label: "عميل سعيد", icon: "users" },
-        { number: "200+", label: "قطعة مصنوعة", icon: "palette" },
-        { number: "4.9", label: "تقييم العملاء", icon: "star" },
-        { number: "3+", label: "سنوات خبرة", icon: "clock" },
-      ],
-    },
-    about_story: {
-      title: "قصتنا",
-      content: "",
-      image: "",
-      highlights: [],
-    },
-    about_values: {
-      title: "قيمنا",
-      items: [],
-    },
-    about_workshop: {
-      title: "داخل ورشة العمل",
-      description: "",
-      images: [],
-    },
-    about_timeline: {
-      title: "رحلتنا",
-      events: [],
-    },
-    about_seo: {
-      title: "من نحن | Sandy Macrame",
-      description: "تعرف على قصتنا",
-      keywords: "من نحن، مكرمية",
-    },
-  });
+
+  const handleWhatsAppClick = () => {
+    const message = "مرحباً ساندي، أود التواصل معك بخصوص منتجاتكم الرائعة";
+    openWhatsApp(contactInfo?.whatsapp, message);
+  };
 
   const getIconComponent = (iconName) => {
     const iconConfig = {
