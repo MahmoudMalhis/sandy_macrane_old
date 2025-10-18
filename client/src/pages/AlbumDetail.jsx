@@ -1,5 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useAlbumBySlug, useRelatedAlbums } from "../hooks/queries/useAlbums";
+import { useAlbumReviews } from "../hooks/queries/useReviews";
+import { usePublicSettings } from "../hooks/queries/useSettings";
 import { useParams, useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -15,81 +19,93 @@ import Badge from "../components/common/Badge";
 import ApplyNow from "../components/ApplyNow";
 import useAppStore from "../store/useAppStore";
 import Loading from "../utils/Loading";
-import { albumsAPI } from "../api/albums";
-import { reviewsAPI } from "../api/reviews";
 import { useLikes } from "../hooks/useLikes";
 import AlbumCard from "../components/common/AlbumCard";
 import { prepareAlbumImages } from "../utils/albumUtils";
+import Error from "../utils/Error";
 
 export default function AlbumDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const [album, setAlbum] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [relatedAlbums, setRelatedAlbums] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const { openLightbox } = useAppStore();
-  const { likesCount, isLiked, isLoading, toggleLike } = useLikes(
+
+  const { data: settings } = usePublicSettings();
+
+  const { data: album, isLoading: loading, error } = useAlbumBySlug(slug);
+
+  const { data: relatedAlbums = [] } = useRelatedAlbums(
+    album?.category,
     album?.id,
-    album?.likes_count || 0
+    3
   );
 
-  useEffect(() => {
-    const fetchAlbumData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const { data: reviews = [] } = useAlbumReviews(album?.id);
 
-        const albumResponse = await albumsAPI.getBySlug(slug);
-        if (!albumResponse.success) {
-          throw new Error("Album not found");
-        }
+  const {
+    likesCount,
+    isLiked,
+    isLoading: likesLoading,
+    toggleLike,
+  } = useLikes(album?.id, album?.likes_count || 0);
 
-        const albumData = albumResponse.data;
-        setAlbum(albumData);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const { openLightbox } = useAppStore();
 
-        try {
-          const relatedResponse = await albumsAPI.getAll({
-            category: albumData.category,
-            limit: 3,
-            page: 1,
-          });
-          if (relatedResponse.success) {
-            const filtered = relatedResponse.data.filter(
-              (item) => item.id !== albumData.id
-            );
-            setRelatedAlbums(filtered.slice(0, 3));
-          }
-        } catch (relatedError) {
-          console.warn("Failed to load related albums:", relatedError);
-        }
+  // ✅ فحص التحميل أولاً
+  if (loading) {
+    return <Loading />;
+  }
 
-        try {
-          const reviewsResponse = await reviewsAPI.getAll({
-            linked_album_id: albumData.id,
-            limit: 10,
-          });
-          if (reviewsResponse.success) {
-            setReviews(reviewsResponse.data);
-          }
-        } catch (reviewsError) {
-          console.warn("Failed to load reviews:", reviewsError);
-        }
-      } catch (err) {
-        console.error("Error loading album:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // ✅ فحص الخطأ ثانياً
+  if (error) {
+    return <Error />;
+  }
 
-    if (slug) {
-      fetchAlbumData();
+  // ✅ فحص عدم وجود الألبوم ثالثاً
+  if (!album) {
+    return (
+      <div className="min-h-screen bg-beige flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            الألبوم غير موجود
+          </h2>
+          <button
+            onClick={() => navigate("/gallery")}
+            className="px-6 py-2 bg-purple text-white rounded-full hover:bg-purple-hover transition-colors"
+          >
+            العودة للمعرض
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ الآن فقط يمكننا استخدام album بأمان
+  const albumMedia = album.media || [];
+
+  const validMedia = albumMedia.filter((media) => {
+    if (!media) {
+      console.warn("Found null/undefined media item");
+      return false;
     }
-  }, [slug]);
+    if (!media.url || typeof media.url !== "string") {
+      console.warn("Found media item without valid URL:", media);
+      return false;
+    }
+    return true;
+  });
 
+  const albumTags = Array.isArray(album.tags)
+    ? album.tags
+    : typeof album.tags === "string"
+    ? JSON.parse(album.tags)
+    : [];
+
+  const averageRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+      : 0;
+
+  // ✅ Functions
   const handleImageClick = (imageIndex) => {
     if (!album?.media || album.media.length === 0) return;
 
@@ -115,10 +131,24 @@ export default function AlbumDetail() {
   };
 
   const handleWhatsAppContact = () => {
-    const message = `مرحباً ساندي، أريد الاستفسار عن: ${album.title}`;
-    const whatsappUrl = `https:
-      message
-    )}`;
+    const whatsappNumber = settings?.whatsapp_owner || "970599123456";
+
+    const cleanPhone = whatsappNumber
+      .replace(/\s+/g, "")
+      .replace(/[\-\(\)\+]/g, "")
+      .replace(/^00/, "");
+
+    const message = `مرحباً ساندي 👋
+
+أريد الاستفسار عن هذا المنتج:
+📦 *${album.title}*
+
+${album.description ? `الوصف: ${album.description.substring(0, 100)}...` : ""}
+
+شكراً 🌷`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
     window.open(whatsappUrl, "_blank");
   };
 
@@ -127,7 +157,6 @@ export default function AlbumDetail() {
       console.error("Related album missing slug:", relatedAlbum);
       return;
     }
-
     navigate(`/album/${relatedAlbum.slug}`);
   };
 
@@ -136,60 +165,7 @@ export default function AlbumDetail() {
     openLightbox(images, imageIndex);
   };
 
-  if (loading) {
-    return <Loading />;
-  }
-
-  if (error || !album) {
-    return (
-      <div className="min-h-screen bg-beige flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-xl font-bold text-gray-700 mb-2">
-            {error === "Album not found" ? "المنتج غير موجود" : "حدث خطأ"}
-          </h2>
-          <p className="text-gray-600 mb-4">
-            {error === "Album not found"
-              ? "لم نتمكن من العثور على المنتج المطلوب"
-              : "حدث خطأ في تحميل البيانات"}
-          </p>
-          <button
-            onClick={() => navigate("/gallery")}
-            className="bg-purple text-white px-6 py-3 rounded-lg hover:bg-purple-hover transition-colors"
-          >
-            العودة للمعرض
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const averageRating =
-    reviews.length > 0
-      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-      : 0;
-
-  const albumMedia = album.media || [];
-
-  const validMedia = albumMedia.filter((media) => {
-    if (!media) {
-      console.warn("Found null/undefined media item");
-      return false;
-    }
-    if (!media.url || typeof media.url !== "string") {
-      console.warn("Found media item without valid URL:", media);
-      return false;
-    }
-    return true;
-  });
-
-  const albumSpecs = album.specifications || {};
-  const albumTags = Array.isArray(album.tags)
-    ? album.tags
-    : typeof album.tags === "string"
-    ? JSON.parse(album.tags)
-    : [];
-
+  // ✅ JSX
   return (
     <div className="min-h-screen bg-beige py-8">
       <div className="container mx-auto px-4 mb-6">
@@ -212,12 +188,13 @@ export default function AlbumDetail() {
 
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12">
+          {/* المعرض */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            {albumMedia.length > 0 ? (
+            {validMedia.length > 0 ? (
               <>
                 <div className="mb-4">
                   <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl group cursor-pointer">
@@ -235,31 +212,24 @@ export default function AlbumDetail() {
                 </div>
                 {validMedia.length > 1 && (
                   <div className="grid grid-cols-4 gap-2">
-                    {validMedia.map((media, index) => {
-                      if (!media.url) {
-                        console.warn("Media missing URL at index:", index);
-                        return null;
-                      }
-
-                      return (
-                        <button
-                          key={media.id || `media-${index}`}
-                          onClick={() => setSelectedImageIndex(index)}
-                          className={`aspect-square rounded-lg overflow-hidden border-2 transition-all duration-300 ${
-                            selectedImageIndex === index
-                              ? "border-purple scale-105"
-                              : "border-gray-200 hover:border-purple"
-                          }`}
-                        >
-                          <img
-                            src={media.url}
-                            alt={media.alt || album.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        </button>
-                      );
-                    })}
+                    {validMedia.map((media, index) => (
+                      <button
+                        key={media.id || `media-${index}`}
+                        onClick={() => setSelectedImageIndex(index)}
+                        className={`aspect-square rounded-lg overflow-hidden border-2 transition-all duration-300 ${
+                          selectedImageIndex === index
+                            ? "border-purple scale-105"
+                            : "border-gray-200 hover:border-purple"
+                        }`}
+                      >
+                        <img
+                          src={media.url}
+                          alt={media.alt || album.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </button>
+                    ))}
                   </div>
                 )}
               </>
@@ -269,6 +239,8 @@ export default function AlbumDetail() {
               </div>
             )}
           </motion.div>
+
+          {/* التفاصيل */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -296,13 +268,13 @@ export default function AlbumDetail() {
                     e.stopPropagation();
                     toggleLike();
                   }}
-                  disabled={isLoading}
+                  disabled={likesLoading}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-200 ${
                     isLiked
                       ? "bg-red-500 text-white hover:bg-red-600"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   } ${
-                    isLoading
+                    likesLoading
                       ? "opacity-50 cursor-not-allowed"
                       : "cursor-pointer"
                   }`}
@@ -324,12 +296,14 @@ export default function AlbumDetail() {
                 )}
               </div>
             </div>
+
             <div className="bg-white rounded-2xl p-6 shadow-lg">
               <h3 className="text-xl font-bold text-purple mb-3">وصف المنتج</h3>
               <p className="text-gray-700 leading-relaxed">
                 {album.description || "لا يوجد وصف متاح"}
               </p>
             </div>
+
             {album.maker_note && (
               <div className="bg-gradient-to-br from-purple to-pink rounded-2xl p-6 text-white shadow-lg">
                 <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
@@ -351,6 +325,7 @@ export default function AlbumDetail() {
                 </div>
               </div>
             )}
+
             {albumTags.length > 0 && (
               <div>
                 <h3 className="text-lg font-bold text-purple mb-3">
@@ -368,6 +343,7 @@ export default function AlbumDetail() {
                 </div>
               </div>
             )}
+
             <div className="space-y-4">
               <ApplyNow album={album} className="w-full py-4 text-lg">
                 اطلب هذا المنتج الآن
@@ -392,6 +368,8 @@ export default function AlbumDetail() {
             </div>
           </motion.div>
         </div>
+
+        {/* التقييمات */}
         {reviews.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -452,6 +430,8 @@ export default function AlbumDetail() {
             </div>
           </motion.div>
         )}
+
+        {/* الألبومات المشابهة */}
         {relatedAlbums.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}

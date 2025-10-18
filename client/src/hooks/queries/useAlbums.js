@@ -22,18 +22,18 @@ export const useAlbums = (filters = {}) => {
         page: filters.page || 1,
         limit: filters.limit || 12,
         ...(filters.status &&
-          filters.status !== "all" && { status: filters.status }), 
+          filters.status !== "all" && { status: filters.status }),
         ...(filters.category &&
           filters.category !== "all" && { category: filters.category }),
         ...(filters.search && { search: filters.search }),
         ...(filters.sort && { sort: filters.sort }),
       };
-      const response = await adminAPI.getAlbums(params); 
+      const response = await adminAPI.getAlbums(params);
       if (!response.success) throw new Error("فشل في تحميل الألبومات");
       return response;
     },
     staleTime: 3 * 60 * 1000,
-    placeholderData: (previousData) => previousData, 
+    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -340,5 +340,31 @@ export const useUpdateAlbumTitle = () => {
     onError: (error) => {
       toast.error(error.message || "فشل في تحديث اسم الألبوم");
     },
+  });
+};
+
+export const useRelatedAlbums = (category, currentAlbumId, limit = 3) => {
+  return useQuery({
+    queryKey: [...albumsKeys.all, "related", category, currentAlbumId, limit],
+    queryFn: async () => {
+      const response = await albumsAPI.getAll({
+        category,
+        limit,
+        page: 1,
+      });
+
+      if (!response.success) {
+        throw new Error("فشل في تحميل الألبومات المشابهة");
+      }
+
+      const filtered = response.data.filter(
+        (item) => item.id !== currentAlbumId
+      );
+
+      return filtered.slice(0, limit);
+    },
+    enabled: !!category && !!currentAlbumId,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 };

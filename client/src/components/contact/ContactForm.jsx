@@ -1,5 +1,3 @@
-// client/src/components/contact/ContactForm.jsx - UPDATED VERSION
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
@@ -11,8 +9,8 @@ import {
   MessageCircle,
   CheckCircle,
 } from "lucide-react";
-import { contactAPI } from "../../api/contact"; // ⭐ NEW IMPORT
-import { toast } from "react-hot-toast"; // ⭐ NEW IMPORT
+import { contactAPI } from "../../api/contact";
+import { toast } from "react-hot-toast";
 import { openWhatsApp } from "../../utils/whatsapp";
 
 const ContactForm = ({ contactInfo }) => {
@@ -31,7 +29,6 @@ const ContactForm = ({ contactInfo }) => {
     setSuccess(false);
 
     try {
-      // ⭐ استخدام الـ API الحقيقي بدلاً من المحاكاة
       const response = await contactAPI.sendMessage({
         name: data.name,
         email: data.email,
@@ -43,9 +40,8 @@ const ContactForm = ({ contactInfo }) => {
       if (response.success) {
         setSuccess(true);
         toast.success("تم إرسال رسالتك بنجاح! سنتواصل معك قريباً.");
-        reset(); // مسح النموذج
+        reset();
 
-        // إخفاء رسالة النجاح بعد 5 ثوانٍ
         setTimeout(() => {
           setSuccess(false);
         }, 5000);

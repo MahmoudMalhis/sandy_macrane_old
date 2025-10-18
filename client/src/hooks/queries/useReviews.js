@@ -113,3 +113,26 @@ export const useDeleteReview = (onSuccessCallback) => {
     },
   });
 };
+
+export const useAlbumReviews = (albumId) => {
+  return useQuery({
+    queryKey: [...reviewsKeys.all, "album", albumId],
+    queryFn: async () => {
+      const response = await reviewsAPI.getByAlbum(albumId, {
+        status: "published",
+      });
+
+      if (!response.success) {
+        console.warn("فشل في تحميل التقييمات");
+        return [];
+      }
+
+      return response.data || [];
+    },
+    enabled: !!albumId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+
+    retry: 1,
+  });
+};
