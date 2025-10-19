@@ -1,5 +1,6 @@
-/* eslint-disable no-unused-vars */
+
 import { useEffect, useState } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import {
@@ -17,7 +18,7 @@ import {
 import { toast } from "react-hot-toast";
 import Button from "../components/common/Button";
 import useAppStore from "../store/useAppStore";
-import { inquiriesAPI } from "../api/inquiries"; // ✅ استيراد API
+import { inquiriesAPI } from "../api/inquiries"; 
 
 export default function OrderForm() {
   const { isOrderFormOpen, selectedAlbum, closeOrderForm } = useAppStore();
@@ -43,12 +44,11 @@ export default function OrderForm() {
     handleSubmit,
     formState: { errors },
     reset,
-    watch,
   } = useForm();
 
   if (!isOrderFormOpen) return null;
 
-  // رفع الصور
+  
   const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files);
 
@@ -95,7 +95,7 @@ export default function OrderForm() {
     }
   };
 
-  // حذف صورة
+  
   const removeImage = (imageId) => {
     setUploadedImages((prev) => {
       const imageToRemove = prev.find((img) => img.id === imageId);
@@ -106,12 +106,12 @@ export default function OrderForm() {
     });
   };
 
-  // ✅ إرسال النموذج - المُحدّث
+  
   const onSubmit = async (data) => {
     setSending(true);
 
     try {
-      // تحضير البيانات للإرسال
+      
       const inquiryData = {
         customer_name: data.name,
         phone_whatsapp: data.whatsapp,
@@ -128,21 +128,12 @@ export default function OrderForm() {
         attached_images: uploadedImages,
       };
 
-      // إرسال الطلب إلى الـ API
+      
       const response = await inquiriesAPI.create(inquiryData);
 
       if (response.success) {
         toast.success("تم إرسال طلبك بنجاح!");
         setFormSubmitted(true);
-
-        // فتح واتساب (اختياري)
-        if (response.data.whatsappLink) {
-          setTimeout(() => {
-            window.open(response.data.whatsappLink, "_blank");
-          }, 1000);
-        }
-
-        // إغلاق النموذج بعد 3 ثوان
         setTimeout(() => {
           handleClose();
         }, 3000);
@@ -164,15 +155,6 @@ export default function OrderForm() {
     }
   };
 
-  const getProductTypeText = (type) => {
-    const types = {
-      macrame: "مكرمية",
-      frame: "برواز",
-      other: "أخرى",
-    };
-    return types[type] || type;
-  };
-
   const handleClose = () => {
     uploadedImages.forEach((img) => {
       URL.revokeObjectURL(img.url);
@@ -182,14 +164,6 @@ export default function OrderForm() {
     setFormSubmitted(false);
     reset();
     closeOrderForm();
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   return (

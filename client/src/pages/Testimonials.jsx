@@ -5,17 +5,13 @@ import Error from "../utils/Error";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star,
-  Quote,
   Search,
-  Calendar,
-  User,
   MessageSquare,
 } from "lucide-react";
-import Badge from "../components/common/Badge";
 import Loading from "../utils/Loading";
 import ReviewForm from "../forms/ReviewForm";
-import { Link } from "react-router-dom";
 import ApplyNow from "../components/ApplyNow";
+import TestimonialCard from "../components/testimonials/TestimonialCard";
 
 export default function Testimonials() {
   const [filters, setFilters] = useState({
@@ -49,15 +45,6 @@ export default function Testimonials() {
     ));
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ar", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   const getAverageRating = useMemo(() => {
     if (testimonials.length === 0) return 0;
     const sum = testimonials.reduce(
@@ -87,14 +74,14 @@ export default function Testimonials() {
   const filteredTestimonials = useMemo(() => {
     let filtered = [...testimonials];
 
-    // فلتر التقييم
+    
     if (filters.rating !== "all") {
       filtered = filtered.filter(
         (testimonial) => testimonial.rating === parseInt(filters.rating)
       );
     }
 
-    // فلتر الفئة
+    
     if (filters.category !== "all") {
       filtered = filtered.filter((testimonial) => {
         if (!testimonial.album_title) return false;
@@ -105,7 +92,7 @@ export default function Testimonials() {
       });
     }
 
-    // فلتر البحث
+    
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
       filtered = filtered.filter(
@@ -117,7 +104,7 @@ export default function Testimonials() {
       );
     }
 
-    // الترتيب
+    
     switch (sortBy) {
       case "latest":
         filtered.sort(
@@ -143,7 +130,7 @@ export default function Testimonials() {
     return <Loading />;
   }
 
-  // ✅ أضف بعده مباشرة:
+  
   if (isError) {
     return <Error error={error?.message || "فشل في تحميل التقييمات"} />;
   }
@@ -154,7 +141,6 @@ export default function Testimonials() {
 
   return (
     <div className="min-h-screen bg-beige py-8">
-      {/* العنوان الرئيسي */}
       <div className="container mx-auto px-4 mb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -170,8 +156,6 @@ export default function Testimonials() {
           </p>
           <div className="w-24 h-1 bg-pink mx-auto mt-6 rounded-full"></div>
         </motion.div>
-
-        {/* ملخص التقييمات */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -179,7 +163,6 @@ export default function Testimonials() {
           className="bg-white rounded-2xl shadow-lg p-8 mb-8 max-w-4xl mx-auto"
         >
           <div className="grid md:grid-cols-2 gap-8">
-            {/* التقييم العام */}
             <div className="text-center">
               <div className="text-5xl font-bold text-purple mb-2">
                 {averageRating}
@@ -192,7 +175,6 @@ export default function Testimonials() {
               </p>
             </div>
 
-            {/* توزيع التقييمات */}
             <div className="space-y-2">
               {[5, 4, 3, 2, 1].map((rating) => {
                 const count = ratingDistribution[rating];
@@ -217,7 +199,6 @@ export default function Testimonials() {
           </div>
         </motion.div>
 
-        {/* أدوات الفلترة والبحث */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -225,7 +206,6 @@ export default function Testimonials() {
           className="bg-white rounded-2xl shadow-lg p-6 mb-8"
         >
           <div className="grid md:grid-cols-4 gap-4">
-            {/* البحث */}
             <div className="relative">
               <input
                 type="text"
@@ -242,7 +222,6 @@ export default function Testimonials() {
               />
             </div>
 
-            {/* فلتر التقييم */}
             <select
               value={filters.rating}
               onChange={(e) =>
@@ -258,7 +237,6 @@ export default function Testimonials() {
               <option value="1">نجمة واحدة ⭐</option>
             </select>
 
-            {/* فلتر التصنيف */}
             <select
               value={filters.category}
               onChange={(e) =>
@@ -271,7 +249,6 @@ export default function Testimonials() {
               <option value="frame">براويز</option>
             </select>
 
-            {/* ترتيب */}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -283,7 +260,6 @@ export default function Testimonials() {
             </select>
           </div>
 
-          {/* نتائج الفلترة */}
           <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
             <span>
               عرض {filteredTestimonials.length} من أصل {testimonials.length}{" "}
@@ -304,7 +280,6 @@ export default function Testimonials() {
           </div>
         </motion.div>
       </div>
-      {/* شبكة التقييمات */}
       <div className="container mx-auto px-4">
         <AnimatePresence mode="wait">
           {filteredTestimonials.length === 0 ? (
@@ -322,145 +297,19 @@ export default function Testimonials() {
               <p className="text-gray-600">جرب تغيير معايير البحث أو الفلترة</p>
             </motion.div>
           ) : (
-            <motion.div
-              key="results"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-            >
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredTestimonials.map((testimonial, index) => (
-                <motion.div
+                <TestimonialCard
                   key={testimonial.id}
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:scale-105"
-                >
-                  {/* صورة التقييم */}
-                  {(testimonial.album_cover || testimonial.attached_image) && (
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={
-                          testimonial.album_cover || testimonial.attached_image
-                        }
-                        alt={
-                          testimonial.album_cover
-                            ? `كفر ألبوم ${testimonial.album_title}`
-                            : `تقييم ${testimonial.author_name}`
-                        }
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-30"></div>
-
-                      {/* شارة التصنيف */}
-                      <div className="absolute top-4 right-4">
-                        <Badge variant="category">
-                          {testimonial.album_title?.includes("برواز") ||
-                          testimonial.album_title?.includes("إطار")
-                            ? "برواز"
-                            : "مكرمية"}
-                        </Badge>
-                      </div>
-
-                      {/* مؤشر نوع الصورة */}
-                      <div className="absolute top-4 left-4">
-                        <div className="bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                          {testimonial.album_cover
-                            ? "صورة المنتج"
-                            : "صورة التقييم"}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* محتوى التقييم */}
-                  <div className="p-6">
-                    {/* التقييم والاقتباس */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-1">
-                        {renderStars(testimonial.rating)}
-                      </div>
-                      <Quote className="text-purple opacity-30" size={24} />
-                    </div>
-
-                    {/* نص التقييم */}
-                    <p className="text-gray-700 leading-relaxed mb-4 line-clamp-4">
-                      "{testimonial.text}"
-                    </p>
-
-                    {/* معلومات الكاتب */}
-                    <div className="border-t border-gray-100 pt-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-purple flex items-center gap-2">
-                            <User size={16} />
-                            {testimonial.author_name}
-                          </h4>
-                        </div>
-                        <div className="text-right text-xs text-gray-500">
-                          <div className="flex items-center gap-1 mb-1">
-                            <Calendar size={12} />
-                            {formatDate(testimonial.created_at)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* معلومات المنتج */}
-                      {testimonial.album_title && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                          <Link
-                            to={`/album/${testimonial.album_slug}`}
-                            className="flex items-center gap-3 hover:bg-gray-100 transition-colors rounded-lg p-2 -m-2"
-                          >
-                            {/* صورة الكفر */}
-                            {testimonial.album_cover && (
-                              <img
-                                src={testimonial.album_cover}
-                                alt={testimonial.album_title}
-                                className="w-10 h-10 rounded object-cover"
-                                loading="lazy"
-                              />
-                            )}
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">المنتج:</span>{" "}
-                                <span className="text-purple hover:text-purple-hover font-medium">
-                                  {testimonial.album_title}
-                                </span>
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                اضغط لعرض تفاصيل المنتج
-                              </p>
-                            </div>
-                            <div className="text-purple">
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 5l7 7-7 7"
-                                />
-                              </svg>
-                            </div>
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
+                  testimonial={testimonial}
+                  variant="grid"
+                  index={index}
+                />
               ))}
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
       </div>
-      {/* دعوة لترك تقييم */}
       <div className="container mx-auto px-4 mt-16">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -491,7 +340,6 @@ export default function Testimonials() {
               </ApplyNow>
             </div>
 
-            {/* إحصائيات سريعة */}
             <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-white border-opacity-20">
               <div>
                 <div className="text-3xl font-bold mb-2">
@@ -512,7 +360,6 @@ export default function Testimonials() {
             </div>
           </div>
 
-          {/* عناصر تزيينية */}
           <div className="absolute top-6 right-6 w-20 h-20 border border-white opacity-20 rounded-full"></div>
           <div className="absolute bottom-6 left-6 w-16 h-16 border border-white opacity-20 rounded-full"></div>
         </motion.div>

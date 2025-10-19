@@ -1,8 +1,13 @@
-// server/src/module/reviews/service.js - مُحدثة مع دعم البحث والفلترة
 import db, { fn } from "../../db/knex.js";
 
+const REVIEW_WITH_ALBUM_FIELDS = [
+  "reviews.*",
+  "albums.title as album_title",
+  "albums.slug as album_slug",
+  "albums.category as album_category",
+  "albums.cover_image as album_cover",
+];
 class ReviewsService {
-  // Create new review
   static async create(reviewData) {
     try {
       const {
@@ -19,7 +24,7 @@ class ReviewsService {
         text,
         attached_image,
         linked_album_id,
-        status: "pending", // Always pending for manual approval
+        status: "pending",
         created_at: fn.now(),
       });
 
@@ -29,11 +34,10 @@ class ReviewsService {
     }
   }
 
-  // Get all reviews (with advanced filters)
   static async getAll(filters = {}) {
     try {
       const {
-        status ,
+        status,
         linked_album_id,
         search,
         author_name,
@@ -65,7 +69,6 @@ class ReviewsService {
           .leftJoin("albums", "reviews.linked_album_id", "albums.id");
       }
 
-      // Apply status filter
       if (status && status !== "all") {
         if (Array.isArray(status)) {
           query = query.whereIn("reviews.status", status);
@@ -74,12 +77,10 @@ class ReviewsService {
         }
       }
 
-      // Apply album filter
       if (linked_album_id) {
         query = query.where("reviews.linked_album_id", linked_album_id);
       }
 
-      // Apply search filter
       if (search && search.trim()) {
         const searchTerm = `%${search.trim()}%`;
         query = query.where(function () {
@@ -95,7 +96,6 @@ class ReviewsService {
         });
       }
 
-      // Apply author name filter
       if (author_name && author_name.trim()) {
         query = query.where(
           "reviews.author_name",
@@ -104,7 +104,6 @@ class ReviewsService {
         );
       }
 
-      // Apply rating filters
       if (exact_rating) {
         query = query.where("reviews.rating", exact_rating);
       } else {
@@ -116,7 +115,6 @@ class ReviewsService {
         }
       }
 
-      // Apply date filters
       if (date_from) {
         query = query.where("reviews.created_at", ">=", date_from);
       }
@@ -124,7 +122,6 @@ class ReviewsService {
         query = query.where("reviews.created_at", "<=", date_to + " 23:59:59");
       }
 
-      // Apply image filter
       if (has_image !== undefined) {
         if (has_image) {
           query = query.whereNotNull("reviews.attached_image");
@@ -133,7 +130,6 @@ class ReviewsService {
         }
       }
 
-      // Apply album association filter
       if (has_album !== undefined) {
         if (has_album) {
           query = query.whereNotNull("reviews.linked_album_id");
@@ -142,7 +138,6 @@ class ReviewsService {
         }
       }
 
-      // Apply sorting
       const validSortFields = {
         created_at: "reviews.created_at",
         rating: "reviews.rating",
@@ -156,19 +151,15 @@ class ReviewsService {
 
       query = query.orderBy(sortField, sortDirection);
 
-      // Add secondary sorting for consistency
       if (sort_by !== "created_at") {
         query = query.orderBy("reviews.created_at", "desc");
       }
 
-      // Clone query for counting
       const countQuery = query.clone();
 
-      // Apply pagination
       const offset = (page - 1) * limit;
       const reviews = await query.limit(limit).offset(offset);
 
-      // Get total count
       const totalResult = await countQuery
         .clearSelect()
         .clearOrder()
@@ -191,7 +182,6 @@ class ReviewsService {
     }
   }
 
-  // Get review by ID with full details
   static async getById(id) {
     try {
       const review = await db("reviews")
@@ -216,10 +206,9 @@ class ReviewsService {
     }
   }
 
-  // Update review
   static async update(id, updateData) {
     try {
-      await this.getById(id); // Check if exists
+      await this.getById(id);
 
       const {
         author_name,
@@ -250,7 +239,6 @@ class ReviewsService {
     }
   }
 
-  // Delete review
   static async delete(id) {
     try {
       const review = await this.getById(id);
@@ -263,7 +251,6 @@ class ReviewsService {
     }
   }
 
-  // Change review status (publish/hide/pending)
   static async changeStatus(id, status) {
     try {
       return await this.update(id, { status });
@@ -272,19 +259,13 @@ class ReviewsService {
     }
   }
 
-  // Get featured reviews for homepage
   static async getFeatured(limit = 3) {
     try {
       const reviews = await db("reviews")
-        .select(
-          "reviews.*",
-          "albums.title as album_title",
-          "albums.slug as album_slug",
-          "albums.category as album_category"
-        )
+        .select(REVIEW_WITH_ALBUM_FIELDS)
         .leftJoin("albums", "reviews.linked_album_id", "albums.id")
         .where("reviews.status", "published")
-        .where("reviews.rating", ">=", 4) // Only high ratings for featured
+        .where("reviews.rating", ">=", 4)
         .orderBy("reviews.created_at", "desc")
         .limit(limit);
 
@@ -294,12 +275,10 @@ class ReviewsService {
     }
   }
 
-  // Get comprehensive reviews statistics
   static async getStats(dateRange = null) {
     try {
       let baseQuery = db("reviews");
 
-      // Apply date range if provided
       if (dateRange && dateRange.from) {
         baseQuery = baseQuery.where("created_at", ">=", dateRange.from);
       }
@@ -311,7 +290,6 @@ class ReviewsService {
         );
       }
 
-      // Basic counts
       const [totalReviews] = await baseQuery.clone().count("* as count");
       const [publishedReviews] = await baseQuery
         .clone()
@@ -326,25 +304,21 @@ class ReviewsService {
         .where("status", "hidden")
         .count("* as count");
 
-      // Average rating
       const [{ avg_rating }] = await baseQuery
         .clone()
         .where("status", "published")
         .avg("rating as avg_rating");
 
-      // Reviews with images
       const [reviewsWithImages] = await baseQuery
         .clone()
         .whereNotNull("attached_image")
         .count("* as count");
 
-      // Reviews linked to albums
       const [reviewsWithAlbums] = await baseQuery
         .clone()
         .whereNotNull("linked_album_id")
         .count("* as count");
 
-      // Ratings distribution
       const ratingsDistribution = await baseQuery
         .clone()
         .select("rating")
@@ -358,12 +332,10 @@ class ReviewsService {
         ratingsMap[item.rating] = parseInt(item.count);
       });
 
-      // Ensure all ratings (1-5) are present
       for (let i = 1; i <= 5; i++) {
         if (!ratingsMap[i]) ratingsMap[i] = 0;
       }
 
-      // Monthly stats (last 12 months)
       const monthlyStats = await db("reviews")
         .select(
           db.raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
@@ -389,7 +361,7 @@ class ReviewsService {
         averageRating: parseFloat(avg_rating) || 0,
         ratingsDistribution: ratingsMap,
         monthlyStats,
-        // Calculated percentages
+
         publishedPercentage:
           totalReviews.count > 0
             ? Math.round(
@@ -420,7 +392,6 @@ class ReviewsService {
     }
   }
 
-  // Get reviews for specific album
   static async getByAlbum(albumId, status = "published") {
     try {
       return await db("reviews")
@@ -432,7 +403,6 @@ class ReviewsService {
     }
   }
 
-  // Bulk operations
   static async updateMultiple(ids, updateData) {
     try {
       if (!Array.isArray(ids) || ids.length === 0) {
@@ -470,7 +440,6 @@ class ReviewsService {
     }
   }
 
-  // Advanced search with complex filters
   static async advancedSearch(searchParams) {
     try {
       return await this.getAll(searchParams);
@@ -479,25 +448,18 @@ class ReviewsService {
     }
   }
 
-  // Get similar reviews (basic implementation)
   static async getSimilar(reviewId, limit = 5) {
     try {
       const review = await this.getById(reviewId);
 
       let query = db("reviews")
-        .select(
-          "reviews.*",
-          "albums.title as album_title",
-          "albums.slug as album_slug"
-        )
+        .select(REVIEW_WITH_ALBUM_FIELDS)
         .leftJoin("albums", "reviews.linked_album_id", "albums.id")
         .where("reviews.id", "!=", reviewId)
         .where("reviews.status", "published");
 
-      // Find similar by rating
       query = query.where("reviews.rating", review.rating);
 
-      // If linked to album, prioritize same album or category
       if (review.linked_album_id) {
         query = query.where(function () {
           this.where("reviews.linked_album_id", review.linked_album_id).orWhere(
@@ -517,10 +479,8 @@ class ReviewsService {
     }
   }
 
-  // Link review to album
   static async linkToAlbum(reviewId, albumId) {
     try {
-      // Verify album exists
       const album = await db("albums").where("id", albumId).first();
       if (!album) {
         throw new Error("Album not found");
@@ -532,7 +492,6 @@ class ReviewsService {
     }
   }
 
-  // Unlink review from album
   static async unlinkFromAlbum(reviewId) {
     try {
       return await this.update(reviewId, { linked_album_id: null });
@@ -541,15 +500,10 @@ class ReviewsService {
     }
   }
 
-  // Get trending reviews (high rating, recent, popular)
   static async getTrending(limit = 10) {
     try {
       const reviews = await db("reviews")
-        .select(
-          "reviews.*",
-          "albums.title as album_title",
-          "albums.slug as album_slug"
-        )
+        .select(REVIEW_WITH_ALBUM_FIELDS)
         .leftJoin("albums", "reviews.linked_album_id", "albums.id")
         .where("reviews.status", "published")
         .where("reviews.rating", ">=", 4)
@@ -571,7 +525,6 @@ class ReviewsService {
   }
 }
 
-// Export named functions
 export const create = ReviewsService.create.bind(ReviewsService);
 export const getAll = ReviewsService.getAll.bind(ReviewsService);
 export const getById = ReviewsService.getById.bind(ReviewsService);
@@ -592,7 +545,6 @@ export const unlinkFromAlbum =
   ReviewsService.unlinkFromAlbum.bind(ReviewsService);
 export const getTrending = ReviewsService.getTrending.bind(ReviewsService);
 
-// Export delete with alternative name
 export const deleteReview = ReviewsService.delete.bind(ReviewsService);
 export { ReviewsService as delete };
 

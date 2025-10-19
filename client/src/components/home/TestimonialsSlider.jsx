@@ -3,12 +3,12 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
-import { Star, Quote, ArrowLeft } from "lucide-react";
-
+import { Star, ArrowLeft } from "lucide-react";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { useNavigate } from "react-router-dom";
+import TestimonialCard from "../testimonials/TestimonialCard";
 
 const TestimonialsSlider = ({ testimonials = [], settings }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -36,27 +36,6 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
       observer.disconnect();
     };
   }, []);
-
-  const renderStars = (rating) => {
-    return [...Array(5)].map((_, i) => (
-      <Star
-        key={i}
-        size={16}
-        className={`${
-          i < rating ? "text-yellow-500 fill-current" : "text-gray-300"
-        }`}
-      />
-    ));
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ar", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   const getFilteredTestimonials = () => {
     if (!testimonials || testimonials.length === 0) return [];
@@ -154,56 +133,8 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
           <Swiper {...swiperConfig} className="testimonials-slider rounded-2xl">
             {filteredTestimonials.map((testimonial) => (
               <SwiperSlide key={testimonial.id}>
-                <div className="bg-beige rounded-2xl p-8 lg:p-12 mx-4">
-                  <div className="grid lg:grid-cols-3 gap-8 items-center">
-                    <div className="lg:col-span-1">
-                      <div className="relative">
-                        <img
-                          src={testimonial.attached_image}
-                          alt={`تقييم ${testimonial.author_name}`}
-                          className="w-full h-64 lg:h-80 object-cover rounded-xl shadow-lg"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.target.src = "/images/default-review.jpg";
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-purple via-transparent to-transparent opacity-20 rounded-xl"></div>
-                      </div>
-                    </div>
-
-                    <div className="lg:col-span-2 space-y-6">
-                      <div className="text-purple opacity-30">
-                        <Quote size={48} />
-                      </div>
-
-                      <blockquote className="text-gray-700 text-lg lg:text-xl leading-relaxed font-medium">
-                        "{testimonial.text}"
-                      </blockquote>
-
-                      <div className="flex items-center gap-2">
-                        {renderStars(testimonial.rating)}
-                        <span className="text-sm text-gray-600 mr-2">
-                          ({testimonial.rating}/5)
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-purple text-lg">
-                            {testimonial.author_name}
-                          </h4>
-                          {testimonial.album_title && (
-                            <p className="text-gray-600 text-sm">
-                              منتج: {testimonial.album_title}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right text-sm text-gray-500">
-                          {formatDate(testimonial.created_at)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="mx-4">
+                  <TestimonialCard testimonial={testimonial} variant="slider" />
                 </div>
               </SwiperSlide>
             ))}

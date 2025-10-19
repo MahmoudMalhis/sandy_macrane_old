@@ -4,7 +4,6 @@ export const useFilter = (initialFilters = {}, onFilterChange) => {
   const [filters, setFilters] = useState(initialFilters);
   const [activeFilters, setActiveFilters] = useState({});
 
-  // ✅ Wrap onFilterChange في useCallback لمنع re-creation
   const stableOnFilterChange = useCallback(
     (active) => {
       onFilterChange?.(active);

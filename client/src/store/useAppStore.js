@@ -1,21 +1,16 @@
-// client/src/store/useAppStore.js
 import { create } from "zustand";
 
 const useAppStore = create((set, get) => ({
-  // Order Form State
   isOrderFormOpen: false,
   selectedAlbum: null,
 
-  // Lightbox State
   isLightboxOpen: false,
   currentImages: [],
   currentImageIndex: 0,
 
-  // Loading States
   isLoading: false,
   error: null,
 
-  // Actions
   openOrderForm: (album = null) => {
     set({ isOrderFormOpen: true, selectedAlbum: album });
   },
