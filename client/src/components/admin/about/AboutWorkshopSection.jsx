@@ -147,6 +147,7 @@ export default function AboutWorkshopSection({
                           src={imageSrc}
                           alt="Preview"
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       </div>
                     )}

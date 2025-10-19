@@ -41,7 +41,8 @@ export const useApi = (apiFunction, dependencies = [], options = {}) => {
     if (immediate) {
       execute();
     }
-  }, dependencies);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...dependencies, immediate]);
 
   return { data, loading, error, execute, refetch: execute };
 };

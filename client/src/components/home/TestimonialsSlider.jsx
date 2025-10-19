@@ -1,12 +1,10 @@
-/* eslint-disable no-unused-vars */
-// client/src/components/home/TestimonialsSlider.jsx - محدث لاستخدام البيانات الحقيقية
 import { useState, useEffect } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { Star, Quote, ArrowLeft } from "lucide-react";
 
-// استيراد CSS الخاص بـ Swiper
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
@@ -16,21 +14,12 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
   const [isVisible, setIsVisible] = useState(false);
   const navigation = useNavigate();
 
-  // الإعدادات الافتراضية
-  const defaultSettings = {
-    section_title: "ماذا يقول عملاؤنا",
-    section_description:
-      "آراء حقيقية من عملائنا الكرام حول تجربتهم مع منتجاتنا",
-    button_text: "شاهد جميع التقييمات",
-    show_count: 4,
-    min_rating: 4,
-    autoplay: true,
-    autoplay_delay: 6000,
-  };
-
-  const testimonialsSettings = { ...defaultSettings, ...settings };
+  const testimonialsSettings = { ...settings };
 
   useEffect(() => {
+    const element = document.getElementById("testimonials-slider");
+    if (!element) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -40,10 +29,12 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
       { threshold: 0.1 }
     );
 
-    const element = document.getElementById("testimonials-slider");
-    if (element) observer.observe(element);
+    observer.observe(element);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.unobserve(element);
+      observer.disconnect();
+    };
   }, []);
 
   const renderStars = (rating) => {
@@ -67,7 +58,6 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
     });
   };
 
-  // تصفية التقييمات حسب الإعدادات
   const getFilteredTestimonials = () => {
     if (!testimonials || testimonials.length === 0) return [];
 
@@ -75,13 +65,11 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
       (testimonial) => testimonial.rating >= testimonialsSettings.min_rating
     );
 
-    // تطبيق العدد المحدد
     return filtered.slice(0, testimonialsSettings.show_count);
   };
 
   const filteredTestimonials = getFilteredTestimonials();
 
-  // إعدادات Swiper
   const swiperConfig = {
     modules: [
       Navigation,
@@ -118,7 +106,6 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
     },
   };
 
-  // إذا لم توجد تقييمات، عرض رسالة
   if (!filteredTestimonials || filteredTestimonials.length === 0) {
     return (
       <section id="testimonials-slider" className="py-16 lg:py-24 bg-white">
@@ -148,7 +135,6 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
   return (
     <section id="testimonials-slider" className="py-16 lg:py-24 bg-white">
       <div className="container mx-auto px-4">
-        {/* العنوان */}
         <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0, y: 30 }}
@@ -164,21 +150,16 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
           <div className="w-24 h-1 bg-pink mx-auto mt-6 rounded-full"></div>
         </motion.div>
 
-        {/* السلايدر */}
         <div className="relative max-w-4xl mx-auto">
           <Swiper {...swiperConfig} className="testimonials-slider rounded-2xl">
             {filteredTestimonials.map((testimonial) => (
               <SwiperSlide key={testimonial.id}>
                 <div className="bg-beige rounded-2xl p-8 lg:p-12 mx-4">
                   <div className="grid lg:grid-cols-3 gap-8 items-center">
-                    {/* الصورة */}
                     <div className="lg:col-span-1">
                       <div className="relative">
                         <img
-                          src={
-                            testimonial.attached_image ||
-                            "/images/default-review.jpg"
-                          }
+                          src={testimonial.attached_image}
                           alt={`تقييم ${testimonial.author_name}`}
                           className="w-full h-64 lg:h-80 object-cover rounded-xl shadow-lg"
                           loading="lazy"
@@ -190,19 +171,15 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
                       </div>
                     </div>
 
-                    {/* المحتوى */}
                     <div className="lg:col-span-2 space-y-6">
-                      {/* أيقونة الاقتباس */}
                       <div className="text-purple opacity-30">
                         <Quote size={48} />
                       </div>
 
-                      {/* النص */}
                       <blockquote className="text-gray-700 text-lg lg:text-xl leading-relaxed font-medium">
                         "{testimonial.text}"
                       </blockquote>
 
-                      {/* التقييم */}
                       <div className="flex items-center gap-2">
                         {renderStars(testimonial.rating)}
                         <span className="text-sm text-gray-600 mr-2">
@@ -210,7 +187,6 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
                         </span>
                       </div>
 
-                      {/* معلومات الكاتب */}
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="font-bold text-purple text-lg">
@@ -232,7 +208,6 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
               </SwiperSlide>
             ))}
 
-            {/* أزرار التنقل المخصصة */}
             {filteredTestimonials.length > 1 && (
               <>
                 <div className="testimonials-swiper-button-prev absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white hover:bg-purple hover:text-white text-purple p-3 rounded-full shadow-lg transition-all duration-300 cursor-pointer">
@@ -263,14 +238,12 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
               </>
             )}
 
-            {/* مؤشرات النقاط المخصصة */}
             {filteredTestimonials.length > 1 && (
               <div className="testimonials-swiper-pagination mt-8 flex justify-center"></div>
             )}
           </Swiper>
         </div>
 
-        {/* زر عرض المزيد */}
         <motion.div
           className="text-center mt-12"
           initial={{ opacity: 0, y: 20 }}
@@ -292,7 +265,7 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
       </div>
 
       <style>{`
-        /* تخصيص مؤشرات النقاط */
+       
         .testimonials-slider .swiper-pagination-bullet {
           width: 12px;
           height: 12px;
@@ -306,13 +279,13 @@ const TestimonialsSlider = ({ testimonials = [], settings }) => {
           transform: scale(1.3);
         }
 
-        /* تخصيص الأزرار */
+       
         .testimonials-swiper-button-prev:hover,
         .testimonials-swiper-button-next:hover {
           transform: translateY(-50%) scale(1.1);
         }
 
-        /* تحسين الاستجابة */
+       
         @media (max-width: 768px) {
           .testimonials-swiper-button-prev,
           .testimonials-swiper-button-next {

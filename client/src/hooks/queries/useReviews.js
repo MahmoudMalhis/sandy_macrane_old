@@ -64,6 +64,26 @@ export const useFeaturedReviews = (limit = 4) => {
   });
 };
 
+export const useCreateReview = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (reviewData) => {
+      const response = await reviewsAPI.create(reviewData);
+      if (!response.success) {
+        throw new Error(response.message || "فشل في إنشاء التقييم");
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: reviewsKeys.all });
+    },
+    onError: (error) => {
+      console.error("Create review error:", error);
+    },
+  });
+};
+
 export const useUpdateReviewStatus = () => {
   const queryClient = useQueryClient();
 

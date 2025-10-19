@@ -238,6 +238,7 @@ export default function About() {
                               src={aboutData.about_story.image}
                               alt="ساندي"
                               className="w-12 h-12 rounded-full border-2 border-purple"
+                              loading="lazy"
                             />
                             <div>
                               <p className="font-bold text-gray-300">ساندي</p>

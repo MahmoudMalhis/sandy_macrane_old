@@ -1,6 +1,5 @@
-/* eslint-disable no-unused-vars */
-// client/src/components/forms/ReviewForm.jsx - نموذج إضافة تقييم
-import { useEffect, useState } from "react";
+import { useState } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import {
   Star,
@@ -13,8 +12,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { reviewsAPI } from "../api/reviews";
-import { albumsAPI } from "../api/albums";
+import { usePublicAlbums } from "../hooks/queries/useAlbums";
+import { useCreateReview } from "../hooks/queries/useReviews";
 
 const ReviewForm = ({
   isOpen,
@@ -30,30 +29,20 @@ const ReviewForm = ({
   });
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [albums, setAlbums] = useState([]);
   const [selectedAlbum, setSelectedAlbum] = useState(linkedAlbum?.id || null);
   const [albumPreview, setAlbumPreview] = useState(linkedAlbum || null);
 
-  useEffect(() => {
-    if (isOpen && !linkedAlbum) {
-      fetchAlbums();
-    }
-  }, [isOpen]);
+  const { data: albumsData, isLoading: albumsLoading } = usePublicAlbums({
+    status: "published",
+    enabled: !linkedAlbum && isOpen, 
+  });
 
-  const fetchAlbums = async () => {
-    try {
-      const response = await albumsAPI.getAll({ status: "published" });
-      if (response.success) {
-        setAlbums(response.data);
-      }
-    } catch (error) {
-      console.error("Error fetching albums:", error);
-    }
-  };
+  const createReviewMutation = useCreateReview();
 
-  // تحديث معاينة الألبوم عند تغيير الاختيار
+  const albums = albumsData?.data || [];
+  const loading = createReviewMutation.isPending;
+
   const handleAlbumSelection = (albumId) => {
     const album = albums.find((a) => a.id === parseInt(albumId));
     setSelectedAlbum(albumId);
@@ -64,7 +53,6 @@ const ReviewForm = ({
     }));
   };
 
-  // معالجة تغيير البيانات
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -72,7 +60,6 @@ const ReviewForm = ({
     }));
   };
 
-  // معالجة اختيار التقييم
   const handleRatingClick = (rating) => {
     setFormData((prev) => ({
       ...prev,
@@ -80,40 +67,34 @@ const ReviewForm = ({
     }));
   };
 
-  // معالجة اختيار الصورة
   const handleImageSelect = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      // التحقق من نوع الملف
-      if (!file.type.startsWith("image/")) {
-        toast.error("يرجى اختيار ملف صورة صالح");
-        return;
-      }
+    if (!file) return;
 
-      // التحقق من حجم الملف (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("حجم الصورة يجب أن يكون أقل من 5 ميجابايت");
-        return;
-      }
-
-      setSelectedImage(file);
-
-      // إنشاء معاينة للصورة
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file.type.startsWith("image/")) {
+      toast.error("يرجى اختيار ملف صورة صالح");
+      return;
     }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("حجم الصورة يجب أن يكون أقل من 5 ميجابايت");
+      return;
+    }
+
+    setSelectedImage(file);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
-  // إزالة الصورة المختارة
   const removeImage = () => {
     setSelectedImage(null);
     setImagePreview(null);
   };
 
-  // التحقق من صحة النموذج
   const validateForm = () => {
     if (!formData.author_name.trim()) {
       toast.error("يرجى إدخال اسمك");
@@ -143,26 +124,20 @@ const ReviewForm = ({
     return true;
   };
 
-  // إرسال التقييم
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
-    setLoading(true);
+    const submitData = {
+      ...formData,
+      review_image: selectedImage,
+    };
 
-    try {
-      const submitData = {
-        ...formData,
-        review_image: selectedImage,
-      };
-
-      const response = await reviewsAPI.create(submitData);
-
-      if (response.success) {
+    createReviewMutation.mutate(submitData, {
+      onSuccess: (data) => {
         toast.success("تم إرسال تقييمك بنجاح! سيظهر بعد المراجعة");
 
-        // إعادة تعيين النموذج
         setFormData({
           author_name: "",
           rating: 0,
@@ -172,27 +147,21 @@ const ReviewForm = ({
         setSelectedImage(null);
         setImagePreview(null);
 
-        // استدعاء callback إذا كان متوفراً
         if (onSubmitSuccess) {
-          onSubmitSuccess(response.data);
+          onSubmitSuccess(data);
         }
 
-        // إغلاق النموذج
         setTimeout(() => {
           onClose();
         }, 1500);
-      } else {
-        toast.error("فشل في إرسال التقييم، يرجى المحاولة مرة أخرى");
-      }
-    } catch (error) {
-      console.error("Error submitting review:", error);
-      toast.error("حدث خطأ في إرسال التقييم");
-    } finally {
-      setLoading(false);
-    }
+      },
+      onError: (error) => {
+        console.error("Error submitting review:", error);
+        toast.error(error.message || "حدث خطأ في إرسال التقييم");
+      },
+    });
   };
 
-  // رسم النجوم
   const renderStars = () => {
     return [...Array(5)].map((_, index) => {
       const starValue = index + 1;
@@ -240,69 +209,93 @@ const ReviewForm = ({
             <h2 className="text-2xl font-bold text-gray-900">شاركنا رأيك</h2>
             <p className="text-gray-600 mt-1">
               {linkedAlbum
-                ? `تقييم لـ "${linkedAlbum.title}"`
-                : "أضف تقييماً جديداً"}
+                ? `تقييمك لـ "${linkedAlbum.title}"`
+                : "نحن نقدر تقييمك ونتطلع لسماع رأيك"}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+            disabled={loading}
           >
-            <X size={24} className="text-gray-400" />
+            <X size={24} />
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* معلومات المنتج المرتبط */}
-          {linkedAlbum && (
-            <div className="bg-purple bg-opacity-10 rounded-lg p-4">
-              <div className="flex items-center gap-4">
-                {linkedAlbum.cover_image && (
-                  <img
-                    src={linkedAlbum.cover_image}
-                    alt={linkedAlbum.title}
-                    className="w-16 h-16 rounded-lg object-cover"
-                    loading="lazy"
-                  />
-                )}
-                <div>
-                  <h3 className="font-medium text-purple">
-                    {linkedAlbum.title}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {linkedAlbum.category === "macrame" ? "مكرمية" : "برواز"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* الاسم */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <User size={16} className="inline ml-1" />
-              الاسم الكامل *
+              اسمك *
             </label>
             <input
               type="text"
               value={formData.author_name}
               onChange={(e) => handleInputChange("author_name", e.target.value)}
-              placeholder="أدخل اسمك الكامل"
+              placeholder="أدخل اسمك الكريم"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent transition-colors"
               maxLength={100}
+              disabled={loading}
               required
             />
           </div>
 
-          {/* التقييم */}
+          {!linkedAlbum && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                المنتج (اختياري)
+              </label>
+              {albumsLoading ? (
+                <div className="text-center py-4 text-gray-500">
+                  جاري تحميل المنتجات...
+                </div>
+              ) : (
+                <>
+                  <select
+                    value={selectedAlbum || ""}
+                    onChange={(e) => handleAlbumSelection(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent transition-colors"
+                    disabled={loading}
+                  >
+                    <option value="">اختر منتج (اختياري)</option>
+                    {albums.map((album) => (
+                      <option key={album.id} value={album.id}>
+                        {album.title}
+                      </option>
+                    ))}
+                  </select>
+
+                  {albumPreview && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg flex items-center gap-3">
+                      {albumPreview.cover_image && (
+                        <img
+                          src={albumPreview.cover_image}
+                          alt={albumPreview.title}
+                          className="w-16 h-16 object-cover rounded"
+                        />
+                      )}
+                      <div>
+                        <p className="font-medium text-purple">
+                          {albumPreview.title}
+                        </p>
+                        <p className="text-sm text-gray-600 line-clamp-1">
+                          {albumPreview.description}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              تقييمك *
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              التقييم *
             </label>
-            <div className="flex items-center gap-2">
-              {renderStars()}
-              <span className="text-sm text-gray-600 mr-3">
+            <div className="flex flex-col items-center gap-3 p-4 bg-gray-50 rounded-lg">
+              <div className="flex gap-2">{renderStars()}</div>
+              <span className="text-sm text-gray-600">
                 {formData.rating > 0
                   ? `${formData.rating} من 5 نجوم`
                   : "اختر تقييمك"}
@@ -310,7 +303,6 @@ const ReviewForm = ({
             </div>
           </div>
 
-          {/* النص */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <MessageSquare size={16} className="inline ml-1" />
@@ -323,6 +315,7 @@ const ReviewForm = ({
               rows={5}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent resize-none transition-colors"
               maxLength={1000}
+              disabled={loading}
               required
             />
             <div className="text-sm text-gray-500 text-left mt-1">
@@ -330,7 +323,6 @@ const ReviewForm = ({
             </div>
           </div>
 
-          {/* إضافة صورة */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Camera size={16} className="inline ml-1" />
@@ -344,17 +336,18 @@ const ReviewForm = ({
                   accept="image/*"
                   onChange={handleImageSelect}
                   className="hidden"
-                  id="image-upload"
+                  id="review-image"
+                  disabled={loading}
                 />
                 <label
-                  htmlFor="image-upload"
+                  htmlFor="review-image"
                   className="cursor-pointer flex flex-col items-center"
                 >
-                  <Upload size={32} className="text-gray-400 mb-2" />
-                  <p className="text-gray-600">اضغط لاختيار صورة</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    PNG, JPG, GIF حتى 5MB
-                  </p>
+                  <Upload className="w-12 h-12 text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-600">اضغط لرفع صورة</span>
+                  <span className="text-xs text-gray-400 mt-1">
+                    PNG, JPG (حد أقصى 5MB)
+                  </span>
                 </label>
               </div>
             ) : (
@@ -363,12 +356,12 @@ const ReviewForm = ({
                   src={imagePreview}
                   alt="معاينة"
                   className="w-full h-48 object-cover rounded-lg"
-                  loading="lazy"
                 />
                 <button
                   type="button"
                   onClick={removeImage}
-                  className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
+                  className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                  disabled={loading}
                 >
                   <X size={16} />
                 </button>
@@ -376,73 +369,19 @@ const ReviewForm = ({
             )}
           </div>
 
-          {!linkedAlbum && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                اختر المنتج (اختياري)
-              </label>
-              <select
-                value={selectedAlbum || ""}
-                onChange={(e) => handleAlbumSelection(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple focus:border-transparent"
-              >
-                <option value="">لا يوجد منتج محدد</option>
-                {albums.map((album) => (
-                  <option key={album.id} value={album.id}>
-                    {album.title} -{" "}
-                    {album.category === "macrame" ? "مكرمية" : "برواز"}
-                  </option>
-                ))}
-              </select>
-
-              {/* معاينة الألبوم المختار */}
-              {albumPreview && (
-                <div className="mt-4 bg-purple bg-opacity-10 rounded-lg p-4">
-                  <div className="flex items-center gap-4">
-                    {albumPreview.cover_image && (
-                      <img
-                        src={albumPreview.cover_image}
-                        alt={albumPreview.title}
-                        className="w-16 h-16 rounded-lg object-cover"
-                        loading="lazy"
-                      />
-                    )}
-                    <div>
-                      <h3 className="font-medium text-gray-300">
-                        {albumPreview.title}
-                      </h3>
-                      <p className="text-sm text-gray-100">
-                        {albumPreview.category === "macrame"
-                          ? "مكرمية"
-                          : "برواز"}
-                      </p>
-                      {albumPreview.description && (
-                        <p className="text-xs text-gray-50 mt-1 line-clamp-2">
-                          {albumPreview.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* تنبيه */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex">
-              <AlertCircle className="text-blue-400 mt-0.5 ml-2" size={20} />
-              <div className="text-sm text-blue-700">
-                <p className="font-medium mb-1">ملاحظة مهمة:</p>
+            <div className="flex items-start gap-3">
+              <AlertCircle className="text-blue-500 mt-0.5" size={20} />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">ملاحظة هامة:</p>
                 <p>
-                  سيتم مراجعة تقييمك قبل نشره للتأكد من جودة المحتوى. عادة ما
-                  يتم الموافقة على التقييمات خلال 24 ساعة.
+                  سيتم مراجعة تقييمك قبل النشر للتأكد من جودته. عادة ما يتم
+                  الموافقة على التقييمات خلال 24 ساعة.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* أزرار العمل */}
           <div className="flex gap-4 pt-4">
             <button
               type="submit"

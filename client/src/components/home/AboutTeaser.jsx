@@ -1,5 +1,5 @@
-/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { Heart, Sparkles, Award } from "lucide-react";
 import Button from "../common/Button";
@@ -10,6 +10,9 @@ export default function AboutTeaser({ aboutData }) {
   const navigation = useNavigate();
 
   useEffect(() => {
+    const element = document.getElementById("about-teaser");
+    if (!element) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -18,9 +21,13 @@ export default function AboutTeaser({ aboutData }) {
       },
       { threshold: 0.1 }
     );
-    const element = document.getElementById("about-teaser");
-    if (element) observer.observe(element);
-    return () => observer.disconnect();
+
+    observer.observe(element);
+
+    return () => {
+      observer.unobserve(element);
+      observer.disconnect();
+    };
   }, []);
 
   if (!aboutData) {
@@ -119,7 +126,7 @@ export default function AboutTeaser({ aboutData }) {
                   size="lg"
                   className="transform hover:scale-105 transition-all duration-300 shadow-lg"
                   onClick={() => {
-                    navigation("/about")
+                    navigation("/about");
                   }}
                 >
                   {aboutData.button_text}

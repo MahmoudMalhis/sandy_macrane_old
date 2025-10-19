@@ -709,7 +709,7 @@ const TestimonialsAdmin = () => {
                         المنتج المرتبط
                       </h3>
                       <div className="bg-purple bg-opacity-10 rounded-lg p-4">
-                        <p className="text-purple font-medium">
+                        <p className="text-white font-medium">
                           {selectedTestimonial.album_title}
                         </p>
                       </div>

@@ -1,4 +1,3 @@
-// client/src/components/admin/about/AboutStorySection.jsx
 import { useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Save, Upload, Plus, Trash2, Star } from "lucide-react";
@@ -111,6 +110,7 @@ export default function AboutStorySection({
                 src={storyImage}
                 alt="Story preview"
                 className="w-full h-64 object-cover"
+                loading="lazy"
               />
               <div className="absolute top-2 right-2">
                 <Button

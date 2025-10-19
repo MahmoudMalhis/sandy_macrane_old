@@ -1,11 +1,9 @@
-// client/src/api/contact.js
-
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 class ContactAPI {
   async makeRequest(endpoint, options = {}) {
-    const token = localStorage.getItem("authToken"); // ✅ تم التصحيح من "token" إلى "authToken"
+    const token = localStorage.getItem("authToken");
 
     const defaultOptions = {
       headers: {
@@ -32,12 +30,6 @@ class ContactAPI {
     return data;
   }
 
-  // ========== PUBLIC ENDPOINTS ==========
-
-  /**
-   * Send contact message
-   * @param {Object} messageData - { name, email, phone, subject, message }
-   */
   async sendMessage(messageData) {
     return this.makeRequest("/contact", {
       method: "POST",
@@ -45,12 +37,6 @@ class ContactAPI {
     });
   }
 
-  // ========== ADMIN ENDPOINTS ==========
-
-  /**
-   * Get all contact messages (admin)
-   * @param {Object} params - filters, pagination
-   */
   async getAll(params = {}) {
     const queryParams = new URLSearchParams();
 
@@ -66,23 +52,14 @@ class ContactAPI {
     return this.makeRequest(`/contact/admin${query ? `?${query}` : ""}`);
   }
 
-  /**
-   * Get single message by ID (admin)
-   */
   async getById(id) {
     return this.makeRequest(`/contact/admin/${id}`);
   }
 
-  /**
-   * Get statistics (admin)
-   */
   async getStats() {
     return this.makeRequest("/contact/admin/stats");
   }
 
-  /**
-   * Update message status (admin)
-   */
   async updateStatus(id, status, adminNotes = null) {
     return this.makeRequest(`/contact/admin/${id}/status`, {
       method: "PUT",
@@ -90,9 +67,6 @@ class ContactAPI {
     });
   }
 
-  /**
-   * Update message priority (admin)
-   */
   async updatePriority(id, priority) {
     return this.makeRequest(`/contact/admin/${id}/priority`, {
       method: "PUT",
@@ -100,9 +74,6 @@ class ContactAPI {
     });
   }
 
-  /**
-   * Update admin notes (admin)
-   */
   async updateNotes(id, notes) {
     return this.makeRequest(`/contact/admin/${id}/notes`, {
       method: "PUT",
@@ -110,27 +81,18 @@ class ContactAPI {
     });
   }
 
-  /**
-   * Mark message as read (admin)
-   */
   async markAsRead(id) {
     return this.makeRequest(`/contact/admin/${id}/read`, {
       method: "PUT",
     });
   }
 
-  /**
-   * Delete message (admin)
-   */
   async delete(id) {
     return this.makeRequest(`/contact/admin/${id}`, {
       method: "DELETE",
     });
   }
 
-  /**
-   * Generate reply template (admin)
-   */
   async generateReplyTemplate(id) {
     return this.makeRequest(`/contact/admin/${id}/reply-template`);
   }

@@ -1,4 +1,3 @@
-// client/src/components/home/HeroSlider.jsx - محدث لإزالة البيانات المؤقتة
 import { useRef } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay, EffectFade } from "swiper/modules";
@@ -11,7 +10,6 @@ import "swiper/css/effect-fade";
 const HeroSlider = ({ sliderData = [] }) => {
   const swiperRef = useRef(null);
 
-  // إذا لم توجد بيانات، لا نعرض شيء
   if (!sliderData || sliderData.length === 0) {
     return (
       <div className="h-96 md:h-[500px] lg:h-[600px] bg-gray-200 flex items-center justify-center">
@@ -23,7 +21,6 @@ const HeroSlider = ({ sliderData = [] }) => {
     );
   }
 
-  // إعدادات Swiper
   const swiperConfig = {
     modules: [Navigation, Pagination, Autoplay, EffectFade],
     spaceBetween: 0,
@@ -50,18 +47,19 @@ const HeroSlider = ({ sliderData = [] }) => {
     speed: 1000,
     on: {
       slideChange: () => {
-        // إضافة أنيميشن للنصوص عند تغيير الشريحة
-        const activeSlide = document.querySelector(".swiper-slide-active");
-        if (activeSlide) {
-          const elements = activeSlide.querySelectorAll(".slide-content > *");
-          elements.forEach((el, index) => {
-            el.style.animation = "none";
-            el.offsetHeight; // trigger reflow
-            el.style.animation = `fadeUp 0.8s ease-out ${
-              index * 0.2
-            }s forwards`;
-          });
-        }
+        requestAnimationFrame(() => {
+          const activeSlide = document.querySelector(".swiper-slide-active");
+          if (activeSlide) {
+            const elements = activeSlide.querySelectorAll(".slide-content > *");
+            elements.forEach((el, index) => {
+              el.style.animation = "none";
+              el.offsetHeight;
+              el.style.animation = `fadeUp 0.8s ease-out ${
+                index * 0.2
+              }s forwards`;
+            });
+          }
+        });
       },
     },
   };
@@ -75,7 +73,6 @@ const HeroSlider = ({ sliderData = [] }) => {
       >
         {sliderData.map((slide, index) => (
           <SwiperSlide key={slide.id} className="relative">
-            {/* صورة الخلفية */}
             <div className="absolute inset-0">
               <img
                 src={slide.image || "/images/default-hero.jpg"}
@@ -93,8 +90,6 @@ const HeroSlider = ({ sliderData = [] }) => {
               ></div>
               <div className="absolute inset-0 bg-black opacity-30"></div>
             </div>
-
-            {/* المحتوى */}
             <div className="relative h-full flex items-center justify-center z-10">
               <div className="text-center text-white px-4 max-w-4xl mx-auto slide-content">
                 <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 transform translate-y-8">
@@ -113,7 +108,6 @@ const HeroSlider = ({ sliderData = [] }) => {
           </SwiperSlide>
         ))}
 
-        {/* أزرار التنقل المخصصة - تظهر فقط إذا كان هناك أكثر من شريحة */}
         {sliderData.length > 1 && (
           <>
             <div className="hero-swiper-button-prev absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-opacity-20 hover:bg-opacity-30 text-white p-3 rounded-full transition-all duration-300 backdrop-blur-sm cursor-pointer">
@@ -141,15 +135,12 @@ const HeroSlider = ({ sliderData = [] }) => {
                 <polyline points="15,18 9,12 15,6"></polyline>
               </svg>
             </div>
-
-            {/* مؤشرات النقاط المخصصة */}
             <div className="hero-swiper-pagination absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20"></div>
           </>
         )}
       </Swiper>
 
       <style>{`
-        /* تخصيص مؤشرات النقاط */
         .hero-slider .swiper-pagination-bullet {
           width: 12px;
           height: 12px;
@@ -163,13 +154,11 @@ const HeroSlider = ({ sliderData = [] }) => {
           transform: scale(1.3);
         }
 
-        /* تخصيص الأزرار */
         .hero-swiper-button-prev:hover,
         .hero-swiper-button-next:hover {
           transform: translateY(-50%) scale(1.1);
         }
           
-        /* تحسين الاستجابة */
         @media (max-width: 768px) {
           .hero-swiper-button-prev,
           .hero-swiper-button-next {
@@ -177,7 +166,6 @@ const HeroSlider = ({ sliderData = [] }) => {
           }
         }
 
-        /* تحسين الأداء */
         .hero-slider {
           will-change: transform;
         }

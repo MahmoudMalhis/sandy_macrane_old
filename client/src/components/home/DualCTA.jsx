@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import ApplyNow from "../ApplyNow";
@@ -10,6 +11,9 @@ export default function DualCTA({ ctaData }) {
   const data = ctaData || {};
 
   useEffect(() => {
+    const element = document.getElementById("dual-cta");
+    if (!element) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -18,9 +22,13 @@ export default function DualCTA({ ctaData }) {
       },
       { threshold: 0.1 }
     );
-    const element = document.getElementById("dual-cta");
-    if (element) observer.observe(element);
-    return () => observer.disconnect();
+
+    observer.observe(element);
+
+    return () => {
+      observer.unobserve(element);
+      observer.disconnect();
+    };
   }, []);
 
   const CTACard = ({ ctaInfo, index, isCustom }) => {

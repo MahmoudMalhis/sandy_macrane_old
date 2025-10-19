@@ -1,5 +1,5 @@
-// client/src/components/layout/Footer/Footer.jsx
 import { Link } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import {
   Phone,
@@ -235,23 +235,6 @@ export default function Footer() {
             <div className="flex items-center gap-2">
               <Heart size={16} className="text-pink" fill="currentColor" />
               <span>© {currentYear} ساندي مكرمية. جميع الحقوق محفوظة.</span>
-            </div>
-
-            {/* Legal Links */}
-            <div className="flex items-center gap-4 text-xs">
-              <Link
-                to="/privacy"
-                className="hover:text-pink transition-colors duration-300"
-              >
-                سياسة الخصوصية
-              </Link>
-              <span className="text-gray-600">•</span>
-              <Link
-                to="/terms"
-                className="hover:text-pink transition-colors duration-300"
-              >
-                الشروط والأحكام
-              </Link>
             </div>
 
             {/* Developer Credit */}

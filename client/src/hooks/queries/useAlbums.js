@@ -368,3 +368,25 @@ export const useRelatedAlbums = (category, currentAlbumId, limit = 3) => {
     gcTime: 15 * 60 * 1000,
   });
 };
+
+export const usePublicAlbums = (options = {}) => {
+  return useQuery({
+    queryKey: [...albumsKeys.all, "public", options],
+    queryFn: async () => {
+      const params = {
+        ...(options.status && { status: options.status }),
+        ...(options.category && { category: options.category }),
+        ...(options.limit && { limit: options.limit }),
+        ...(options.page && { page: options.page }),
+      };
+
+      const response = await albumsAPI.getAll(params);
+      if (!response.success) throw new Error("فشل في تحميل الألبومات");
+
+      return response;
+    },
+    enabled: options.enabled !== false,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+};

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -11,30 +12,28 @@ export default function FeaturedAlbums({ albums = [], settings }) {
   const navigate = useNavigate();
   const { openLightbox } = useAppStore();
 
-  const defaultSettings = {
-    section_title: "منتجاتنا المميزة",
-    section_description:
-      "اكتشف أحدث إبداعاتنا من المكرمية والبراويز المصنوعة بعناية فائقة",
-    button_text: "عرض جميع المنتجات",
-    show_count: 6,
-    sort_by: "view_count",
+  const albumsSettings = {...settings };
+
+useEffect(() => {
+  const element = document.getElementById("featured-albums");
+  if (!element) return; 
+
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+      }
+    },
+    { threshold: 0.1 }
+  );
+
+  observer.observe(element);
+
+  return () => {
+    observer.unobserve(element); 
+    observer.disconnect(); 
   };
-
-  const albumsSettings = { ...defaultSettings, ...settings };
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.1 }
-    );
-    const element = document.getElementById("featured-albums");
-    if (element) observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
+}, []);
 
   const sortedAlbums = sortAlbums(
     albums,
@@ -88,7 +87,6 @@ export default function FeaturedAlbums({ albums = [], settings }) {
   return (
     <section id="featured-albums" className="py-16 lg:py-24 bg-beige">
       <div className="container mx-auto px-4">
-        {/* العنوان والوصف */}
         <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0, y: 30 }}
@@ -103,8 +101,6 @@ export default function FeaturedAlbums({ albums = [], settings }) {
           </p>
           <div className="w-24 h-1 bg-pink mx-auto mt-6 rounded-full"></div>
         </motion.div>
-
-        {/* شبكة الألبومات */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {sortedAlbums.map((album, index) => (
             <AlbumCard
@@ -118,8 +114,6 @@ export default function FeaturedAlbums({ albums = [], settings }) {
             />
           ))}
         </div>
-
-        {/* زر عرض المزيد */}
         <motion.div
           className="text-center mt-12"
           initial={{ opacity: 0 }}

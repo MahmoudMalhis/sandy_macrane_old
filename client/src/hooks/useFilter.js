@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export const useFilter = (initialFilters = {}, onFilterChange) => {
   const [filters, setFilters] = useState(initialFilters);
   const [activeFilters, setActiveFilters] = useState({});
+
+  // ✅ Wrap onFilterChange في useCallback لمنع re-creation
+  const stableOnFilterChange = useCallback(
+    (active) => {
+      onFilterChange?.(active);
+    },
+    [onFilterChange]
+  );
 
   useEffect(() => {
     const active = Object.entries(filters).reduce((acc, [key, value]) => {
@@ -13,8 +21,8 @@ export const useFilter = (initialFilters = {}, onFilterChange) => {
     }, {});
 
     setActiveFilters(active);
-    onFilterChange && onFilterChange(active);
-  }, [filters, onFilterChange]);
+    stableOnFilterChange(active);
+  }, [filters, stableOnFilterChange]);
 
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
