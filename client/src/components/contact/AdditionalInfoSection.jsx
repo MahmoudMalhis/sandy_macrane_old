@@ -35,11 +35,10 @@ const AdditionalInfoSection = ({ isVisible }) => {
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-3">أسعار منافسة</h3>
           <p className="text-gray-600 mb-4">
-            أسعار عادلة ومناسبة لجميع الفئات مع إمكانية التقسيط
+            أسعار عادلة ومناسبة لجميع الفئات 
           </p>
           <ul className="text-sm text-gray-500 space-y-1">
             <li>• تقديرات مجانية</li>
-            <li>• دفع بالتقسيط</li>
             <li>• خصومات للكميات</li>
           </ul>
         </div>
@@ -51,10 +50,9 @@ const AdditionalInfoSection = ({ isVisible }) => {
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-3">توصيل سريع</h3>
           <p className="text-gray-600 mb-4">
-            خدمة توصيل موثوقة وسريعة إلى جميع أنحاء فلسطين والعالم
+            خدمة توصيل موثوقة وسريعة إلى جميع أنحاء فلسطين 
           </p>
           <ul className="text-sm text-gray-500 space-y-1">
-            <li>• توصيل مجاني للطلبات +100₪</li>
             <li>• تغليف احترافي</li>
             <li>• ضمان سلامة الوصول</li>
           </ul>

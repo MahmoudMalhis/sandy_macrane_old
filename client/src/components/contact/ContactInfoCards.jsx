@@ -127,7 +127,7 @@ const ContactInfoCards = ({ isVisible, contactInfo }) => {
           <p>{contactInfo.workingHours.weekdays}</p>
           <p>{contactInfo.workingHours.weekend}</p>
           <p className="text-sm text-green-500 font-medium">
-            📱 واتساب متاح 24/7 للطوارئ
+            📱 واتساب متاح 24/7
           </p>
         </div>
       </div>
