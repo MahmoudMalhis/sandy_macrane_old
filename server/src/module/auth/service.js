@@ -1,4 +1,3 @@
-// server/src/module/auth/service.js - مُصحح
 import { compare, hash } from "bcrypt";
 import jwt from "jsonwebtoken";
 import db, { fn } from "../../db/knex.js";
@@ -7,30 +6,24 @@ import emailService from "../../utils/emailService.js";
 const { sign } = jwt;
 
 class AuthService {
-  // تحقق من وجود أي admin
   static async hasAnyAdmin() {
     const [result] = await db("admin_users").count("* as count");
     return parseInt(result.count) > 0;
   }
 
-  // إنشاء أول حساب إدارة (غير مفعل)
   static async createFirstAdmin(email, password) {
     try {
-      // تحقق أنه لا يوجد أي admin
       const hasAdmin = await this.hasAnyAdmin();
       if (hasAdmin) {
         throw new Error("Admin account already exists");
       }
 
-      // hash كلمة المرور
       const passwordHash = await hash(password, 10);
 
-      // إنشاء token التفعيل
       const verificationToken = emailService.generateVerificationToken();
       const verificationExpiresAt = new Date();
-      verificationExpiresAt.setHours(verificationExpiresAt.getHours() + 24); // 24 ساعة
+      verificationExpiresAt.setHours(verificationExpiresAt.getHours() + 24);
 
-      // إنشاء الحساب
       const [userId] = await db("admin_users").insert({
         email,
         password_hash: passwordHash,
@@ -43,39 +36,46 @@ class AuthService {
         updated_at: fn.now(),
       });
 
-      // إرسال إيميل التفعيل
-      try {
-        await emailService.sendVerificationEmail(email, verificationToken);
-      } catch (emailError) {
-        console.warn("Failed to send verification email:", emailError.message);
-        // لا نريد أن يفشل إنشاء الحساب بسبب فشل الإيميل
-        // في هذه الحالة، نفعل الحساب مباشرة
-        await db("admin_users").where("id", userId).update({
-          email_verified: true,
-          verification_token: null,
-          verification_sent_at: null,
-          verification_expires_at: null,
-          updated_at: fn.now(),
-        });
+const response = {
+  id: userId,
+  email,
+  message:
+    "تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.",
+};
 
-        return {
-          id: userId,
-          email,
-          message: "تم إنشاء الحساب وتفعيله بنجاح. يمكنك تسجيل الدخول الآن.",
-        };
-      }
+// ✅ إرسال البريد asynchronously (بدون await)
+emailService
+  .sendVerificationEmail(email, verificationToken)
+  .then(() => {
+    console.log("✅ Verification email sent successfully to:", email);
+  })
+  .catch((emailError) => {
+    console.error("❌ Failed to send verification email:", emailError.message);
 
-      return {
-        id: userId,
-        email,
-        message: "تم إنشاء الحساب. يرجى التحقق من إيميلك لتفعيل الحساب.",
-      };
+    // إذا فشل البريد، فعّل الحساب تلقائياً (fallback)
+    db("admin_users")
+      .where("id", userId)
+      .update({
+        email_verified: true,
+        verification_token: null,
+        verification_sent_at: null,
+        verification_expires_at: null,
+        updated_at: fn.now(),
+      })
+      .then(() => {
+        console.log("✅ Account auto-verified due to email failure");
+      })
+      .catch((dbError) => {
+        console.error("❌ Failed to auto-verify account:", dbError.message);
+      });
+  });
+
+return response;
     } catch (error) {
       throw error;
     }
   }
 
-  // تفعيل الحساب
   static async verifyEmail(token) {
     try {
       console.log("Verifying token:", token);
@@ -90,7 +90,6 @@ class AuthService {
         throw new Error("Invalid or expired verification token");
       }
 
-      // تحقق من صلاحية التوقيت
       const now = new Date();
       const expiresAt = new Date(user.verification_expires_at);
 
@@ -102,7 +101,6 @@ class AuthService {
         throw new Error("Invalid or expired verification token");
       }
 
-      // تحقق إذا كان مفعل مسبقاً
       if (user.email_verified) {
         return {
           success: true,
@@ -110,7 +108,6 @@ class AuthService {
         };
       }
 
-      // تفعيل الحساب
       await db("admin_users").where("id", user.id).update({
         email_verified: true,
         verification_token: null,
@@ -131,7 +128,6 @@ class AuthService {
     }
   }
 
-  // تسجيل الدخول (مع التحقق من التفعيل)
   static async login(email, password) {
     try {
       const user = await db("admin_users").where("email", email).first();
@@ -140,13 +136,11 @@ class AuthService {
         throw new Error("Invalid credentials");
       }
 
-      // تحقق من كلمة المرور أولاً
       const isPasswordValid = await compare(password, user.password_hash);
       if (!isPasswordValid) {
         throw new Error("Invalid credentials");
       }
 
-      // إذا كانت البيئة development أو لم يتم إعداد الإيميل، تجاهل التحقق من التفعيل
       const skipEmailVerification =
         process.env.NODE_ENV === "development" ||
         !process.env.EMAIL_USER ||
@@ -156,13 +150,11 @@ class AuthService {
         throw new Error("Please verify your email before logging in");
       }
 
-      // تحديث آخر دخول
       await db("admin_users").where("id", user.id).update({
         last_login_at: fn.now(),
         updated_at: fn.now(),
       });
 
-      // إنشاء JWT
       const token = sign(
         {
           id: user.id,
@@ -192,14 +184,12 @@ class AuthService {
 
   static async changePassword(userId, currentPassword, newPassword) {
     try {
-      // جلب المستخدم
       const user = await db("admin_users").where("id", userId).first();
 
       if (!user) {
         throw new Error("User not found");
       }
 
-      // التحقق من كلمة المرور الحالية
       const isCurrentPasswordValid = await compare(
         currentPassword,
         user.password_hash
@@ -208,10 +198,8 @@ class AuthService {
         throw new Error("Invalid current password");
       }
 
-      // hash كلمة المرور الجديدة
       const newPasswordHash = await hash(newPassword, 10);
 
-      // تحديث كلمة المرور
       await db("admin_users").where("id", userId).update({
         password_hash: newPasswordHash,
         updated_at: fn.now(),
@@ -226,7 +214,6 @@ class AuthService {
     }
   }
 
-  // إعادة إرسال إيميل التفعيل
   static async resendVerificationEmail(email) {
     try {
       const user = await db("admin_users").where("email", email).first();
@@ -239,7 +226,6 @@ class AuthService {
         throw new Error("Email is already verified");
       }
 
-      // إنشاء token جديد
       const verificationToken = emailService.generateVerificationToken();
       const verificationExpiresAt = new Date();
       verificationExpiresAt.setHours(verificationExpiresAt.getHours() + 24);
@@ -251,13 +237,25 @@ class AuthService {
         updated_at: fn.now(),
       });
 
-      // إرسال الإيميل
-      await emailService.sendVerificationEmail(email, verificationToken);
+     const response = {
+       success: true,
+       message: "تم إرسال رسالة التفعيل. يرجى التحقق من بريدك الإلكتروني.",
+     };
 
-      return {
-        success: true,
-        message: "تم إرسال رسالة التفعيل مرة أخرى",
-      };
+     // ✅ إرسال البريد asynchronously (بدون await)
+     emailService
+       .sendVerificationEmail(email, verificationToken)
+       .then(() => {
+         console.log("✅ Verification email resent successfully to:", email);
+       })
+       .catch((emailError) => {
+         console.error(
+           "❌ Failed to resend verification email:",
+           emailError.message
+         );
+       });
+
+     return response;
     } catch (error) {
       throw error;
     }
