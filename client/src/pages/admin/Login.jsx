@@ -6,6 +6,8 @@ import Button from "../../components/common/Button";
 import { useEffect, useState } from "react";
 import { authAPI } from "../../api/auth";
 import useAuthStore from "../../api/useAuthStore";
+import { requestNotificationPermission } from '../../config/firebase';
+import { adminAPI } from '../../api/admin';
 
 export default function AdminLogin() {
   const { isAuthenticated, login, loading: authLoading } = useAuthStore();
@@ -23,7 +25,6 @@ export default function AdminLogin() {
   } = useForm();
 
   useEffect(() => {
-    // عرض رسالة من صفحة التفعيل إذا وجدت
     if (location.state?.message) {
       toast.success(location.state.message);
     }
@@ -67,20 +68,32 @@ export default function AdminLogin() {
     return <Navigate to={from} replace />;
   }
 
-  const onSubmit = async (data) => {
-    const result = await login(data);
+const onSubmit = async (data) => {
+  const result = await login(data);
 
-    if (result.success) {
-      toast.success("تم تسجيل الدخول بنجاح");
-    } else {
-      if (result.error?.includes("verify your email")) {
-        toast.error("يرجى تفعيل بريدك الإلكتروني قبل تسجيل الدخول");
-        setShowResendEmail(true);
+  if (result.success) {
+    toast.success("تم تسجيل الدخول بنجاح");
+
+    try {
+      const fcmToken = await requestNotificationPermission();
+      if (fcmToken) {
+        await adminAPI.saveFcmToken(fcmToken);
+        console.log("✅ FCM token saved successfully");
       } else {
-        toast.error(result.error || "فشل تسجيل الدخول");
+        console.log("⚠️ User denied notification permission");
       }
+    } catch (error) {
+      console.error("❌ Failed to setup notifications:", error);
     }
-  };
+  } else {
+    if (result.error?.includes("verify your email")) {
+      toast.error("يرجى تفعيل بريدك الإلكتروني قبل تسجيل الدخول");
+      setShowResendEmail(true);
+    } else {
+      toast.error(result.error || "فشل تسجيل الدخول");
+    }
+  }
+};
 
   const handleResendVerification = async () => {
     const email = getValues("email");

@@ -6,17 +6,17 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
-// Get __dirname equivalent in ES6
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Middlewares
+
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { rateLimiter } from "./middlewares/rateLimiter.js";
 import { authGuard } from "./middlewares/authGuard.js";
 import { upload, processUploadedFiles } from "./utils/upload.js";
 
-// Routes
+
 import authRoutes from "./module/auth/router.js";
 import albumsRoutes from "./module/albums/router.js";
 import mediaRoutes from "./module/media/router.js";
@@ -26,13 +26,14 @@ import settingsRoutes from "./module/settings/router.js";
 import adminRoutes from "./module/admin/router.js";
 import likesRoutes from "./module/albums/likes.routes.js";
 import contactRoutes from "./module/contact/router.js";
+import fcmRouter from "./module/fcm/router.js";
 
 const app = express();
 
-// Security middleware
+
 app.use(helmet());
 
-// CORS configuration
+
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim());
@@ -40,7 +41,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
 app.use(
   cors({
     origin: function (origin, callback) {
-      // السماح للطلبات بدون origin (مثلاً Postman)
+      
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -55,28 +56,28 @@ app.use(
   })
 );
 
-// Rate limiting
+
 app.use(rateLimiter);
 
-// Logging
+
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
-// Body parsing
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Static files
+
 app.use(
   "/uploads",
   (req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*"); // أو بدل * بـ allowedOrigins إذا بدك تقيد
+    res.header("Access-Control-Allow-Origin", "*"); 
     res.header("Cross-Origin-Resource-Policy", "cross-origin");
     next();
   },
   express.static(path.join(__dirname, "../uploads"))
 );
 
-// Health check
+
 app.get("/health", (req, res) => {
   res.json({
     status: "OK",
@@ -85,7 +86,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Test route
+
 app.get("/", (req, res) => {
   res.json({
     message: "Sandy Macrame API is running! 🌟",
@@ -97,7 +98,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// Media upload endpoint for general use
+
 app.post("/api/media/upload", authGuard, upload.single("file"), (req, res) => {
   try {
     if (!req.file) {
@@ -123,7 +124,7 @@ app.post("/api/media/upload", authGuard, upload.single("file"), (req, res) => {
   }
 });
 
-// API Routes
+
 app.use("/api/auth", authRoutes);
 app.use("/api/albums", albumsRoutes);
 app.use("/api/media", mediaRoutes);
@@ -133,8 +134,9 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/albums", likesRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/admin", fcmRouter);
 
-// 404 handler
+
 app.use("*", (req, res) => {
   res.status(404).json({
     success: false,
@@ -142,7 +144,7 @@ app.use("*", (req, res) => {
   });
 });
 
-// Error handling middleware
+
 app.use(errorHandler);
 
 export default app;

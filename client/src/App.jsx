@@ -34,6 +34,9 @@ import ScrollToTop from "./components/ScrollToTop";
 import Loading from "./utils/Loading";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { HelmetProvider } from "react-helmet-async";
+import { useEffect } from 'react';
+import { onMessageListener } from './config/firebase';
+import { toast } from 'react-hot-toast';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +48,24 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
+useEffect(() => {
+  onMessageListener((payload) => {
+    console.log('Notification received:', payload);
+        if (payload.notification) {
+      toast.success(
+        <div>
+          <strong>{payload.notification.title}</strong>
+          <p>{payload.notification.body}</p>
+        </div>,
+        {
+          duration: 5000,
+          position: 'top-right',
+        }
+      );
+    }
+  });
+}, []);
+  
   return (
     <ErrorBoundary>
       <HelmetProvider>

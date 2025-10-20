@@ -3,14 +3,14 @@ import {
   getAll as _getAll,
   getById as _getById,
   updateStatus as _updateStatus,
-  deleteInquiry as _delete, // إصلاح الاستيراد
+  deleteInquiry as _delete,
   getStats as _getStats,
   generateWhatsAppLink as _generateWhatsAppLink,
 } from "./service.js";
 import { info, error as _error } from "../../utils/logger.js";
+import { notifyNewInquiry } from "../../utils/fcm.js";
 
 class InquiriesController {
-  // Create new inquiry (public)
   static async create(req, res) {
     try {
       const { customer_name, phone_whatsapp, product_type, album_id, notes } =
@@ -31,6 +31,15 @@ class InquiriesController {
         product_type,
         album_id,
       });
+
+      try {
+        await notifyNewInquiry(result.inquiry);
+      } catch (notifError) {
+        _error("Failed to send inquiry notification", {
+          error: notifError.message,
+          inquiryId: result.inquiry.id,
+        });
+      }
 
       res.status(201).json({
         success: true,
@@ -53,7 +62,6 @@ class InquiriesController {
     }
   }
 
-  // Get all inquiries (admin)
   static async getAll(req, res) {
     try {
       const { status, product_type, phone, dateFrom, dateTo, page, limit } =
@@ -83,7 +91,6 @@ class InquiriesController {
     }
   }
 
-  // Get inquiry by ID (admin)
   static async getById(req, res) {
     try {
       const { id } = req.params;
@@ -113,7 +120,6 @@ class InquiriesController {
     }
   }
 
-  // Update inquiry status (admin)
   static async updateStatus(req, res) {
     try {
       const { id } = req.params;
@@ -153,7 +159,6 @@ class InquiriesController {
     }
   }
 
-  // Delete inquiry (admin)
   static async delete(req, res) {
     try {
       const { id } = req.params;
@@ -191,7 +196,6 @@ class InquiriesController {
     }
   }
 
-  // Get inquiries statistics (admin)
   static async getStats(req, res) {
     try {
       const stats = await _getStats();
@@ -209,7 +213,6 @@ class InquiriesController {
     }
   }
 
-  // Generate WhatsApp link for inquiry (admin)
   static async generateWhatsAppLink(req, res) {
     try {
       const { id } = req.params;
@@ -242,7 +245,6 @@ class InquiriesController {
   }
 }
 
-// Export named functions
 export const create = InquiriesController.create;
 export const getAll = InquiriesController.getAll;
 export const getById = InquiriesController.getById;

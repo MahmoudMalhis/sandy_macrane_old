@@ -1,16 +1,5 @@
-// client/src/components/ErrorBoundary.jsx
 import { Component } from "react";
 import { AlertTriangle, RefreshCcw, Home } from "lucide-react";
-
-/**
- * ErrorBoundary Component
- * يلتقط الأخطاء في React component tree ويعرض UI بديل
- *
- * @example
- * <ErrorBoundary>
- *   <App />
- * </ErrorBoundary>
- */
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -22,39 +11,23 @@ class ErrorBoundary extends Component {
     };
   }
 
-  /**
-   * يتم استدعاؤه عندما يحدث خطأ في أي component child
-   */
   static getDerivedStateFromError(error) {
-    // تحديث الـ state ليعرض fallback UI في الـ render التالي
     return {
       hasError: true,
       error,
     };
   }
 
-  /**
-   * يتم استدعاؤه بعد التقاط الخطأ
-   * مفيد لتسجيل الأخطاء في خدمات المراقبة
-   */
   componentDidCatch(error, errorInfo) {
-    // تسجيل الخطأ
     console.error("🚨 ErrorBoundary caught an error:", error);
     console.error("📍 Error Info:", errorInfo);
 
-    // تحديث state مع معلومات الخطأ
     this.setState((prevState) => ({
       errorInfo,
       errorCount: prevState.errorCount + 1,
     }));
-
-    // يمكنك إرسال الخطأ لخدمة مراقبة مثل Sentry
-    // logErrorToService(error, errorInfo);
   }
 
-  /**
-   * إعادة تعيين الـ error state
-   */
   handleReset = () => {
     this.setState({
       hasError: false,
@@ -63,34 +36,23 @@ class ErrorBoundary extends Component {
     });
   };
 
-  /**
-   * إعادة تحميل الصفحة
-   */
   handleReload = () => {
     window.location.reload();
   };
 
-  /**
-   * العودة للصفحة الرئيسية
-   */
   handleGoHome = () => {
     window.location.href = "/";
   };
 
-  /**
-   * تحديد نوع الخطأ وعرض رسالة مناسبة
-   */
   getErrorMessage() {
     const { error } = this.state;
 
     if (!error) return "حدث خطأ غير متوقع";
 
-    // أخطاء Lazy Loading
     if (error.name === "ChunkLoadError" || error.message?.includes("chunk")) {
       return "فشل تحميل جزء من التطبيق. قد يكون هناك تحديث جديد.";
     }
 
-    // أخطاء Network
     if (
       error.message?.includes("Network") ||
       error.message?.includes("fetch")
@@ -98,13 +60,9 @@ class ErrorBoundary extends Component {
       return "فشل الاتصال بالخادم. تحقق من اتصالك بالإنترنت.";
     }
 
-    // أخطاء عامة
     return error.message || "حدث خطأ غير متوقع";
   }
 
-  /**
-   * عرض معلومات تقنية للمطورين (development mode فقط)
-   */
   renderDevInfo() {
     const { error, errorInfo } = this.state;
     const isDev = import.meta.env.DEV;
@@ -148,19 +106,16 @@ class ErrorBoundary extends Component {
     const { hasError, errorCount } = this.state;
     const { children, fallback } = this.props;
 
-    // إذا لم يحدث خطأ، عرض children بشكل طبيعي
     if (!hasError) {
       return children;
     }
 
-    // إذا تم تمرير fallback مخصص، استخدمه
     if (fallback) {
       return typeof fallback === "function"
         ? fallback(this.state.error, this.handleReset)
         : fallback;
     }
 
-    // عرض UI الافتراضي للخطأ
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
         <div className="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-8 text-center">

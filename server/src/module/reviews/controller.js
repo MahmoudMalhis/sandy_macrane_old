@@ -4,22 +4,19 @@ import {
   getById as _getById,
   update as _update,
   changeStatus as _changeStatus,
-  deleteReview as _delete, // تم تغيير هذا السطر
+  deleteReview as _delete,
   getFeatured as _getFeatured,
   getStats as _getStats,
 } from "./service.js";
 import { processUploadedFiles } from "../../utils/upload.js";
 import { info, error as _error } from "../../utils/logger.js";
-
+import { notifyNewReview } from "../../utils/fcm.js";
 class ReviewsController {
-  // Create new review (public)
   static async create(req, res) {
     try {
       const { author_name, rating, text, linked_album_id } = req.body;
 
       let attached_image = null;
-
-      // Process uploaded image if exists
       if (req.file) {
         const processedFiles = processUploadedFiles(req, [req.file]);
         attached_image = processedFiles[0].url;
@@ -40,6 +37,15 @@ class ReviewsController {
         linked_album_id,
       });
 
+      try {
+        await notifyNewReview(review);
+      } catch (notifError) {
+        _error("Failed to send review notification", {
+          error: notifError.message,
+          reviewId: review.id,
+        });
+      }
+
       res.status(201).json({
         success: true,
         message: "تم إرسال تقييمك بنجاح وسيظهر بعد المراجعة",
@@ -58,13 +64,12 @@ class ReviewsController {
     }
   }
 
-  // Get all reviews (public)
   static async getAll(req, res) {
     try {
       const { linked_album_id, page, limit } = req.query;
 
       const result = await _getAll({
-        status: "published", // Only published for public
+        status: "published",
         linked_album_id: linked_album_id
           ? parseInt(linked_album_id)
           : undefined,
@@ -86,7 +91,6 @@ class ReviewsController {
     }
   }
 
-  // Get all reviews (admin)
   static async getAllAdmin(req, res) {
     try {
       const { status, linked_album_id, page, limit } = req.query;
@@ -114,7 +118,6 @@ class ReviewsController {
     }
   }
 
-  // Get review by ID (admin)
   static async getById(req, res) {
     try {
       const { id } = req.params;
@@ -144,7 +147,6 @@ class ReviewsController {
     }
   }
 
-  // Update review (admin)
   static async update(req, res) {
     try {
       const { id } = req.params;
@@ -183,7 +185,6 @@ class ReviewsController {
     }
   }
 
-  // Change review status (admin)
   static async changeStatus(req, res) {
     try {
       const { id } = req.params;
@@ -223,7 +224,6 @@ class ReviewsController {
     }
   }
 
-  // Delete review (admin)
   static async delete(req, res) {
     try {
       const { id } = req.params;
@@ -261,7 +261,6 @@ class ReviewsController {
     }
   }
 
-  // Get featured reviews (public)
   static async getFeatured(req, res) {
     try {
       const { limit } = req.query;
@@ -280,7 +279,6 @@ class ReviewsController {
     }
   }
 
-  // Get reviews statistics (admin)
   static async getStats(req, res) {
     try {
       const stats = await _getStats();
@@ -299,13 +297,12 @@ class ReviewsController {
   }
 }
 
-// Export named functions
 export const create = ReviewsController.create;
 export const getAll = ReviewsController.getAll;
 export const getAllAdmin = ReviewsController.getAllAdmin;
 export const getById = ReviewsController.getById;
 export const update = ReviewsController.update;
-export const changeStatus = ReviewsController.changeStatus; // إضافة هذا السطر
+export const changeStatus = ReviewsController.changeStatus;
 export const getFeatured = ReviewsController.getFeatured;
 export const getStats = ReviewsController.getStats;
 export const deleteReview = ReviewsController.delete.bind(ReviewsController);
