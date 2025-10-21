@@ -8,6 +8,7 @@ export const reviewsKeys = {
   list: (filters) => [...reviewsKeys.lists(), filters],
   stats: () => [...reviewsKeys.all, "stats"],
   featured: (limit) => [...reviewsKeys.all, "featured", limit],
+  public: (filters) => [...reviewsKeys.all, "public", filters],
 };
 
 export const useReviews = (filters = {}) => {
