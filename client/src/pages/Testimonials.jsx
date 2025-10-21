@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useReviews } from "../hooks/queries/useReviews";
+import { usePublicReviews } from "../hooks/queries/useReviews";
 import Error from "../utils/Error";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,7 +26,7 @@ export default function Testimonials() {
     isLoading,
     isError,
     error,
-  } = useReviews({
+  } = usePublicReviews({
     status: "published",
     limit: 100,
   });

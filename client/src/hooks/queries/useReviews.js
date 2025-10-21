@@ -40,6 +40,33 @@ export const useReviews = (filters = {}) => {
   });
 };
 
+export const usePublicReviews = (filters = {}) => {
+  return useQuery({
+    queryKey: reviewsKeys.public(filters),
+    queryFn: async () => {
+      const params = {
+        page: filters.page || 1,
+        limit: filters.limit || 100,
+        status: "published",
+      };
+
+      if (filters.linked_album_id) {
+        params.linked_album_id = filters.linked_album_id;
+      }
+
+      const response = await reviewsAPI.getAll(params);
+      if (!response.success) throw new Error("فشل في جلب التقييمات");
+
+      return {
+        data: response.data,
+        pagination: response.pagination,
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+};
+
 export const useReviewsStats = () => {
   return useQuery({
     queryKey: reviewsKeys.stats(),
