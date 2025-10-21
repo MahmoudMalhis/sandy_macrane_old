@@ -13,6 +13,7 @@
     "make:seed": "knex seed:make --knexfile ./knexfile.js"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",
     "cloudinary": "^1.41.0",
     "cors": "^2.8.5",

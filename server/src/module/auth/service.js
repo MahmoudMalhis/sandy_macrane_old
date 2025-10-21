@@ -1,7 +1,7 @@
 import { compare, hash } from "bcrypt";
 import jwt from "jsonwebtoken";
 import db, { fn } from "../../db/knex.js";
-import emailService from "../../utils/emailService.js";
+import emailService from "../../utils/sendgridService.js";
 
 const { sign } = jwt;
 
@@ -36,41 +36,45 @@ class AuthService {
         updated_at: fn.now(),
       });
 
-const response = {
-  id: userId,
-  email,
-  message:
-    "تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.",
-};
+      const response = {
+        id: userId,
+        email,
+        message:
+          "تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.",
+      };
 
-// ✅ إرسال البريد asynchronously (بدون await)
-emailService
-  .sendVerificationEmail(email, verificationToken)
-  .then(() => {
-    console.log("✅ Verification email sent successfully to:", email);
-  })
-  .catch((emailError) => {
-    console.error("❌ Failed to send verification email:", emailError.message);
+      emailService
+        .sendVerificationEmail(email, verificationToken)
+        .then(() => {
+          console.log("✅ Verification email sent successfully to:", email);
+        })
+        .catch((emailError) => {
+          console.error(
+            "❌ Failed to send verification email:",
+            emailError.message
+          );
 
-    // إذا فشل البريد، فعّل الحساب تلقائياً (fallback)
-    db("admin_users")
-      .where("id", userId)
-      .update({
-        email_verified: true,
-        verification_token: null,
-        verification_sent_at: null,
-        verification_expires_at: null,
-        updated_at: fn.now(),
-      })
-      .then(() => {
-        console.log("✅ Account auto-verified due to email failure");
-      })
-      .catch((dbError) => {
-        console.error("❌ Failed to auto-verify account:", dbError.message);
-      });
-  });
+          db("admin_users")
+            .where("id", userId)
+            .update({
+              email_verified: true,
+              verification_token: null,
+              verification_sent_at: null,
+              verification_expires_at: null,
+              updated_at: fn.now(),
+            })
+            .then(() => {
+              console.log("✅ Account auto-verified due to email failure");
+            })
+            .catch((dbError) => {
+              console.error(
+                "❌ Failed to auto-verify account:",
+                dbError.message
+              );
+            });
+        });
 
-return response;
+      return response;
     } catch (error) {
       throw error;
     }
@@ -237,25 +241,24 @@ return response;
         updated_at: fn.now(),
       });
 
-     const response = {
-       success: true,
-       message: "تم إرسال رسالة التفعيل. يرجى التحقق من بريدك الإلكتروني.",
-     };
+      const response = {
+        success: true,
+        message: "تم إرسال رسالة التفعيل. يرجى التحقق من بريدك الإلكتروني.",
+      };
 
-     // ✅ إرسال البريد asynchronously (بدون await)
-     emailService
-       .sendVerificationEmail(email, verificationToken)
-       .then(() => {
-         console.log("✅ Verification email resent successfully to:", email);
-       })
-       .catch((emailError) => {
-         console.error(
-           "❌ Failed to resend verification email:",
-           emailError.message
-         );
-       });
+      emailService
+        .sendVerificationEmail(email, verificationToken)
+        .then(() => {
+          console.log("✅ Verification email resent successfully to:", email);
+        })
+        .catch((emailError) => {
+          console.error(
+            "❌ Failed to resend verification email:",
+            emailError.message
+          );
+        });
 
-     return response;
+      return response;
     } catch (error) {
       throw error;
     }
