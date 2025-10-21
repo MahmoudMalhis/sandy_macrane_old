@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
@@ -64,17 +65,11 @@ const TestimonialsAdmin = () => {
     updateStatusMutation.mutate({ reviewId, status });
   };
 
-  const handleDelete = (testimonial) => {
-    confirmDelete({
-      message: `هل أنت متأكد من حذف تقييم "${testimonial.author_name}"؟`,
-      subtitle: "سيتم حذف التقييم والصورة المرفقة نهائياً ولا يمكن التراجع",
-      confirmText: "حذف",
-      cancelText: "إلغاء",
-      onConfirm: () => {
-        deleteReviewMutation.mutate(testimonial.id);
-      },
-    });
-  };
+const handleDelete = (testimonial) => {
+  confirmDelete(`تقييم "${testimonial.author_name}"`, () => {
+    deleteReviewMutation.mutate(testimonial.id);
+  });
+};
 
   const showDetails = async (testimonial) => {
     try {
