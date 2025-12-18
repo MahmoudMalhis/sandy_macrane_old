@@ -11,12 +11,6 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-   ssl: process.env.DB_SSL_CA ? {
-    ca: process.env.DB_SSL_CA,
-    rejectUnauthorized: true
-  } : {
-    rejectUnauthorized: false
-  }
 });
 
 export default pool.promise();
