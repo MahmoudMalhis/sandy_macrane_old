@@ -156,7 +156,7 @@ const HeroSlider = ({ sliderData = [] }) => {
 
         .hero-swiper-button-prev:hover,
         .hero-swiper-button-next:hover {
-          transform: translateY(-50%) scale(1.1);
+          transform: scale(1.1);
         }
           
         @media (max-width: 768px) {

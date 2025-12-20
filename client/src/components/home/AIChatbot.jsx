@@ -111,8 +111,8 @@ const AIChatbot = ({ enabled = true, phoneNumber }) => {
 
   // إرسال رسالة للـ Gemini API
   const sendMessageToAI = async (userMessage) => {
-    const GEMINI_API_KEY = "AIzaSyCXz3z8lmzJMfx9o_7ga_3Z4SB7YChUPoY"; // ضع API Key هنا
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const GEMINI_API_KEY = "AIzaSyCUUQGNquOPxYkMJ05C8nYXfXUfrlqfruo"; // ضع API Key هنا
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
 
     try {
       const response = await fetch(API_URL, {
@@ -227,10 +227,7 @@ const AIChatbot = ({ enabled = true, phoneNumber }) => {
                 <div className="bg-gradient-to-r from-purple to-pink text-white p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="bg-white bg-opacity-20 p-2 rounded-full backdrop-blur-sm">
-                      <Bot
-                        size={24}
-                        color="purple"
-                      />
+                      <Bot size={24} color="purple" />
                     </div>
                     <div>
                       <h4 className="font-bold">مساعد ساندي الذكي</h4>
