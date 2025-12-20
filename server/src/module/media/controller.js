@@ -1,3 +1,5 @@
+
+
 import {
   addMultipleToAlbum,
   getByAlbum,
@@ -7,33 +9,46 @@ import {
   bulkDelete as _bulkDelete,
 } from "./service.js";
 import { getById } from "../albums/service.js";
-import { processUploadedFiles } from "../../utils/upload.js";
+import { processUploadedFiles, deleteFile } from "../../utils/upload.js";
 import { info, error as _error } from "../../utils/logger.js";
 
+/**
+ * Media Controller - Updated for Cloudinary
+ * يتعامل مع رفع وإدارة الصور عبر Cloudinary
+ */
 class MediaController {
+  /**
+   * رفع صور جديدة إلى ألبوم معين
+   * @route POST /api/media/album/:albumId
+   */
   static async uploadToAlbum(req, res) {
     try {
       const { albumId } = req.params;
 
+      
       await getById(parseInt(albumId), false);
 
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({
           success: false,
-          message: "No files uploaded",
+          message: "لم يتم رفع أي ملفات",
         });
       }
 
+      
       const processedFiles = processUploadedFiles(req, req.files);
 
+      
       const mediaData = processedFiles.map((file) => ({
-        url: file.url,
+        url: file.url, 
         alt: req.body.alt || file.originalname,
+        cloudinary_id: file.cloudinary_id, 
       }));
 
+      
       const media = await addMultipleToAlbum(parseInt(albumId), mediaData);
 
-      info("Media uploaded to album", {
+      info("Media uploaded to album via Cloudinary", {
         albumId: parseInt(albumId),
         mediaCount: media.length,
         uploadedBy: req.user.email,
@@ -41,14 +56,14 @@ class MediaController {
 
       res.status(201).json({
         success: true,
-        message: "Media uploaded successfully",
+        message: "تم رفع الصور بنجاح",
         data: media,
       });
     } catch (error) {
       if (error.message === "Album not found") {
         return res.status(404).json({
           success: false,
-          message: "Album not found",
+          message: "الألبوم غير موجود",
         });
       }
 
@@ -60,17 +75,19 @@ class MediaController {
 
       res.status(500).json({
         success: false,
-        message: "Failed to upload media",
+        message: "فشل في رفع الصور",
+        error: error.message,
       });
     }
   }
 
+  /**
+   * الحصول على جميع صور ألبوم معين
+   * @route GET /api/media/album/:albumId
+   */
   static async getAlbumMedia(req, res) {
     try {
       const { albumId } = req.params;
-
-      await getById(parseInt(albumId), false);
-
       const media = await getByAlbum(parseInt(albumId));
 
       res.json({
@@ -78,13 +95,6 @@ class MediaController {
         data: media,
       });
     } catch (error) {
-      if (error.message === "Album not found") {
-        return res.status(404).json({
-          success: false,
-          message: "Album not found",
-        });
-      }
-
       _error("Get album media failed", {
         albumId: req.params.albumId,
         error: error.message,
@@ -92,11 +102,48 @@ class MediaController {
 
       res.status(500).json({
         success: false,
-        message: "Failed to fetch media",
+        message: "فشل في تحميل الصور",
       });
     }
   }
 
+  /**
+   * إعادة ترتيب الصور في الألبوم
+   * @route POST /api/media/album/:albumId/reorder
+   */
+  static async reorder(req, res) {
+    try {
+      const { albumId } = req.params;
+      const { mediaIds } = req.body;
+
+      await _reorder(parseInt(albumId), mediaIds);
+
+      info("Media reordered", {
+        albumId: parseInt(albumId),
+        reorderedBy: req.user.email,
+      });
+
+      res.json({
+        success: true,
+        message: "تم إعادة ترتيب الصور بنجاح",
+      });
+    } catch (error) {
+      _error("Reorder media failed", {
+        albumId: req.params.albumId,
+        error: error.message,
+      });
+
+      res.status(500).json({
+        success: false,
+        message: "فشل في إعادة الترتيب",
+      });
+    }
+  }
+
+  /**
+   * تحديث بيانات صورة معينة
+   * @route PUT /api/media/admin/:id
+   */
   static async update(req, res) {
     try {
       const { id } = req.params;
@@ -111,159 +158,131 @@ class MediaController {
 
       res.json({
         success: true,
-        message: "Media updated successfully",
+        message: "تم تحديث الصورة بنجاح",
         data: media,
       });
     } catch (error) {
       if (error.message === "Media not found") {
         return res.status(404).json({
           success: false,
-          message: "Media not found",
+          message: "الصورة غير موجودة",
         });
       }
 
       _error("Update media failed", {
         mediaId: req.params.id,
-        updatedBy: req.user?.email,
         error: error.message,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to update media",
+        message: "فشل في تحديث الصورة",
       });
     }
   }
 
-  static async delete(req, res) {
+  static async deleteMedia(req, res) {
     try {
       const { id } = req.params;
-      const media = await _delete(parseInt(id));
 
-      info("Media deleted", {
+      
+      const media = await getByAlbum(null, parseInt(id)); 
+
+      
+      await _delete(parseInt(id));
+
+      
+      if (media && media.url) {
+        await deleteFile(media.url);
+      }
+
+      info("Media deleted from DB and Cloudinary", {
         mediaId: parseInt(id),
-        albumId: media.album_id,
         deletedBy: req.user.email,
       });
 
       res.json({
         success: true,
-        message: "Media deleted successfully",
-        data: media,
+        message: "تم حذف الصورة بنجاح",
       });
     } catch (error) {
       if (error.message === "Media not found") {
         return res.status(404).json({
           success: false,
-          message: "Media not found",
+          message: "الصورة غير موجودة",
         });
       }
 
       _error("Delete media failed", {
         mediaId: req.params.id,
-        deletedBy: req.user?.email,
         error: error.message,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to delete media",
+        message: "فشل في حذف الصورة",
       });
     }
   }
 
-  static async reorder(req, res) {
-    try {
-      const { albumId } = req.params;
-      const { mediaIds } = req.body;
-
-      if (!Array.isArray(mediaIds)) {
-        return res.status(400).json({
-          success: false,
-          message: "mediaIds must be an array",
-        });
-      }
-
-      await getById(parseInt(albumId), false);
-
-      const media = await _reorder(parseInt(albumId), mediaIds);
-
-      info("Media reordered", {
-        albumId: parseInt(albumId),
-        reorderedBy: req.user.email,
-      });
-
-      res.json({
-        success: true,
-        message: "Media reordered successfully",
-        data: media,
-      });
-    } catch (error) {
-      if (error.message === "Album not found") {
-        return res.status(404).json({
-          success: false,
-          message: "Album not found",
-        });
-      }
-
-      _error("Reorder media failed", {
-        albumId: req.params.albumId,
-        reorderedBy: req.user?.email,
-        error: error.message,
-      });
-
-      res.status(500).json({
-        success: false,
-        message: "Failed to reorder media",
-      });
-    }
-  }
-
+  /**
+   * حذف عدة صور دفعة واحدة
+   * @route DELETE /api/media/admin/bulk-delete
+   */
   static async bulkDelete(req, res) {
     try {
       const { mediaIds } = req.body;
 
-      if (!Array.isArray(mediaIds) || mediaIds.length === 0) {
+      if (!mediaIds || mediaIds.length === 0) {
         return res.status(400).json({
           success: false,
-          message: "mediaIds array is required",
+          message: "لم يتم تحديد صور للحذف",
         });
       }
 
-      const result = await _bulkDelete(mediaIds);
+      
+      
+      
 
-      info("Bulk media delete", {
-        requestedCount: mediaIds.length,
-        deletedCount: result.deletedCount,
-        failedCount: result.failedCount,
+      
+      await _bulkDelete(mediaIds);
+
+      
+      
+      
+      
+      
+      
+
+      info("Bulk delete media", {
+        count: mediaIds.length,
         deletedBy: req.user.email,
       });
 
       res.json({
         success: true,
-        message: `تم حذف ${result.deletedCount} صورة بنجاح`,
-        data: result,
+        message: `تم حذف ${mediaIds.length} صورة بنجاح`,
       });
     } catch (error) {
       _error("Bulk delete media failed", {
-        deletedBy: req.user?.email,
+        count: req.body.mediaIds?.length,
         error: error.message,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to delete media",
+        message: "فشل في الحذف الجماعي",
       });
     }
   }
 }
 
+
 export const uploadToAlbum = MediaController.uploadToAlbum;
 export const getAlbumMedia = MediaController.getAlbumMedia;
-export const update = MediaController.update;
 export const reorder = MediaController.reorder;
+export const update = MediaController.update;
+export const deleteMedia = MediaController.deleteMedia;
 export const bulkDelete = MediaController.bulkDelete;
-export const deleteMedia = MediaController.delete.bind(MediaController);
-
 
 export default MediaController;

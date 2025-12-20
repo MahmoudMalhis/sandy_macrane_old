@@ -1,53 +1,57 @@
-import multer, { diskStorage } from "multer";
-import { join, extname } from "path";
-import { existsSync, mkdirSync, unlinkSync } from "fs";
-import { v4 as uuidv4 } from "uuid";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+// server/src/utils/upload.js
 
-// إصلاح __dirname للعمل مع ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import multer from "multer";
+import {
+  storageConfigs,
+  deleteFromCloudinary,
+  extractPublicId,
+} from "../config/cloudinary.config.js";
 
-// Ensure uploads directory exists
-const uploadsDir = join(__dirname, "../../uploads");
-if (!existsSync(uploadsDir)) {
-  mkdirSync(uploadsDir, { recursive: true });
-}
+/**
+ * ⚠️ IMPORTANT: هذا الملف تم تحديثه لاستخدام Cloudinary
+ * جميع الصور يتم رفعها مباشرة إلى Cloudinary CDN
+ */
 
-// Configure multer for local storage
-const storage = diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = join(uploadsDir, getUploadSubfolder(file.fieldname));
-
-    // Create subfolder if it doesn't exist
-    if (!existsSync(uploadPath)) {
-      mkdirSync(uploadPath, { recursive: true });
-    }
-
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}-${Date.now()}${extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
-
-// Get upload subfolder based on field name
-const getUploadSubfolder = (fieldname) => {
+/**
+ * تحديد نوع التخزين المناسب بناءً على fieldname
+ * @param {string} fieldname - اسم الحقل في الفورم
+ * @returns {CloudinaryStorage} - Cloudinary storage instance
+ */
+const getStorageByFieldName = (fieldname) => {
   switch (fieldname) {
     case "album_images":
     case "media_files":
     case "cover_image":
-      return "albums";
+      return storageConfigs.albums;
+
     case "review_image":
-      return "reviews";
+      return storageConfigs.reviews;
+
+    case "file": // لرفع الصور في Settings
+      return storageConfigs.settings;
+
     default:
-      return "misc";
+      return storageConfigs.misc;
   }
 };
 
-// File filter
+/**
+ * Multer storage configuration
+ * يتم استخدام dynamic storage لاختيار المجلد المناسب في Cloudinary
+ */
+const storage = multer.diskStorage({
+  storage: (req, file, cb) => {
+    const cloudinaryStorage = getStorageByFieldName(file.fieldname);
+    cb(null, cloudinaryStorage);
+  },
+});
+
+/**
+ * File filter - السماح فقط بالصور
+ * @param {Object} req - Express request
+ * @param {Object} file - Multer file object
+ * @param {Function} cb - Callback function
+ */
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = [
     "image/jpeg",
@@ -60,65 +64,121 @@ const fileFilter = (req, file, cb) => {
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file type. Only images are allowed."), false);
+    cb(
+      new Error("نوع الملف غير صالح. الصيغ المسموحة: JPG, PNG, GIF, WEBP فقط."),
+      false
+    );
   }
 };
 
-// Multer configuration
-const upload = multer({
-  storage: storage,
+/**
+ * إنشاء Multer instances لأنواع مختلفة من الرفع
+ */
+
+// For albums media (multiple files)
+export const uploadAlbumMedia = multer({
+  storage: storageConfigs.albums,
   limits: {
     fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB
   },
   fileFilter: fileFilter,
 });
 
-// Helper function to delete file
-const deleteFile = (filePath) => {
+// For reviews (single file)
+export const uploadReviewImage = multer({
+  storage: storageConfigs.reviews,
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB
+  },
+  fileFilter: fileFilter,
+});
+
+// For settings images (single file)
+export const uploadSettingsImage = multer({
+  storage: storageConfigs.settings,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB للإعدادات
+  },
+  fileFilter: fileFilter,
+});
+
+// General upload (fallback)
+export const upload = multer({
+  storage: storageConfigs.misc,
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB
+  },
+  fileFilter: fileFilter,
+});
+
+/**
+ * معالجة الملفات المرفوعة وإرجاع البيانات بالشكل المطلوب
+ * @param {Object} req - Express request
+ * @param {Array} files - Multer files array
+ * @returns {Array} - Processed files data
+ */
+export const processUploadedFiles = (req, files) => {
+  if (!files || files.length === 0) return [];
+
+  return files.map((file) => {
+    // Cloudinary يعيد البيانات في file.path (URL) و file.filename (public_id)
+    return {
+      filename: file.filename, // Public ID في Cloudinary
+      originalname: file.originalname,
+      path: file.path, // Full Cloudinary URL
+      url: file.path, // نفس الـ path (Cloudinary URL)
+      size: file.size,
+      mimetype: file.mimetype,
+      cloudinary_id: file.filename, // نفس الـ filename
+    };
+  });
+};
+
+/**
+ * حذف ملف من Cloudinary
+ * @param {string} filePathOrUrl - مسار الملف أو URL
+ * @returns {Promise<boolean>} - نجح الحذف أم لا
+ */
+export const deleteFile = async (filePathOrUrl) => {
   try {
-    if (existsSync(filePath)) {
-      unlinkSync(filePath);
-      return true;
+    // استخراج Public ID من الـ URL
+    const publicId = extractPublicId(filePathOrUrl);
+
+    if (!publicId) {
+      console.warn("Could not extract public ID from:", filePathOrUrl);
+      return false;
     }
-    return false;
+
+    // حذف من Cloudinary
+    return await deleteFromCloudinary(publicId);
   } catch (error) {
     console.error("Error deleting file:", error);
     return false;
   }
 };
 
-// Helper function to get file URL
-const getFileUrl = (req, relativePath) => {
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
-  return `${baseUrl}/uploads/${relativePath}`;
+/**
+ * الحصول على URL الكامل للملف
+ * (في Cloudinary، الـ URL يأتي جاهزاً مباشرة)
+ * @param {Object} req - Express request (غير مستخدم مع Cloudinary)
+ * @param {string} relativePath - URL من Cloudinary
+ * @returns {string} - Full URL
+ */
+export const getFileUrl = (req, relativePath) => {
+  // في Cloudinary، الـ relativePath هو بالفعل URL كامل
+  return relativePath;
 };
 
-// Process uploaded files and return URLs
-const processUploadedFiles = (req, files) => {
-  if (!files || files.length === 0) return [];
-
-  return files.map((file) => {
-    const relativePath = join(
-      getUploadSubfolder(file.fieldname),
-      file.filename
-    ).replace(/\\/g, "/"); // Ensure forward slashes for URLs
-
-    return {
-      filename: file.filename,
-      originalname: file.originalname,
-      path: file.path,
-      url: getFileUrl(req, relativePath),
-      size: file.size,
-      mimetype: file.mimetype,
-    };
-  });
-};
-
-// تصحيح exports
-export {
+/**
+ * تصدير backward compatibility
+ * لتجنب كسر الكود القديم
+ */
+export default {
   upload,
+  uploadAlbumMedia,
+  uploadReviewImage,
+  uploadSettingsImage,
   deleteFile,
   getFileUrl,
   processUploadedFiles,
-  getUploadSubfolder,
 };

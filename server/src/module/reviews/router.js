@@ -1,225 +1,178 @@
-// server/src/module/reviews/router.js - مُحدث مع دعم البحث المتقدم
+// server/src/module/reviews/router.js - FIXED VERSION
+
 import { Router } from "express";
 import { body, query } from "express-validator";
 import {
-  getAll,
-  getFeatured,
   create,
-  getAllAdmin,
-  getStats,
+  getAll,
   getById,
   update,
-  changeStatus,
   deleteReview,
+  changeStatus,
+  getStats,
+  getFeatured,
 } from "./controller.js";
 import { authGuard } from "../../middlewares/authGuard.js";
 import { validate } from "../../middlewares/validate.js";
+import { uploadReviewImage } from "../../utils/upload.js"; // Cloudinary uploader للتقييمات
 import { formLimiter } from "../../middlewares/rateLimiter.js";
-import { upload } from "../../utils/upload.js";
 
 const router = Router();
 
-// Review creation validation
+/**
+ * ==================== Validation Schemas ====================
+ */
+
 const createReviewValidation = [
   body("author_name")
     .trim()
     .notEmpty()
-    .withMessage("Author name is required")
-    .isLength({ max: 100 })
-    .withMessage("Author name must not exceed 100 characters"),
+    .withMessage("اسم الكاتب مطلوب")
+    .isLength({ min: 2, max: 100 })
+    .withMessage("اسم الكاتب يجب أن يكون بين 2 و 100 حرف"),
   body("rating")
     .isInt({ min: 1, max: 5 })
-    .withMessage("Rating must be between 1 and 5"),
+    .withMessage("التقييم يجب أن يكون بين 1 و 5"),
   body("text")
     .trim()
     .notEmpty()
-    .withMessage("Review text is required")
-    .isLength({ max: 1000 })
-    .withMessage("Review text must not exceed 1000 characters"),
+    .withMessage("نص التقييم مطلوب")
+    .isLength({ min: 10, max: 1000 })
+    .withMessage("نص التقييم يجب أن يكون بين 10 و 1000 حرف"),
   body("linked_album_id")
     .optional()
     .isInt({ min: 1 })
-    .withMessage("Album ID must be a positive integer"),
+    .withMessage("معرف الألبوم يجب أن يكون رقم موجب"),
 ];
 
-// Review update validation
 const updateReviewValidation = [
   body("author_name")
     .optional()
     .trim()
-    .isLength({ max: 100 })
-    .withMessage("Author name must not exceed 100 characters"),
+    .isLength({ min: 2, max: 100 })
+    .withMessage("اسم الكاتب يجب أن يكون بين 2 و 100 حرف"),
   body("rating")
     .optional()
     .isInt({ min: 1, max: 5 })
-    .withMessage("Rating must be between 1 and 5"),
+    .withMessage("التقييم يجب أن يكون بين 1 و 5"),
   body("text")
     .optional()
     .trim()
-    .isLength({ max: 1000 })
-    .withMessage("Review text must not exceed 1000 characters"),
+    .isLength({ min: 10, max: 1000 })
+    .withMessage("نص التقييم يجب أن يكون بين 10 و 1000 حرف"),
   body("linked_album_id")
     .optional()
     .isInt({ min: 1 })
-    .withMessage("Album ID must be a positive integer"),
-  body("status")
-    .optional()
-    .isIn(["pending", "published", "hidden"])
-    .withMessage("Status must be pending, published, or hidden"),
+    .withMessage("معرف الألبوم يجب أن يكون رقم موجب"),
 ];
 
-// Status change validation
 const statusValidation = [
   body("status")
     .isIn(["pending", "published", "hidden"])
-    .withMessage("Status must be pending, published, or hidden"),
+    .withMessage("الحالة يجب أن تكون: pending أو published أو hidden"),
 ];
 
-// Enhanced query validation for advanced filtering and search
 const queryValidation = [
-  // Pagination
-  query("page")
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage("Page must be a positive integer"),
-  query("limit")
-    .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage("Limit must be between 1 and 100"),
-
-  // Status filters
+  query("page").optional().isInt({ min: 1 }).toInt(),
+  query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
   query("status")
     .optional()
-    .custom((value) => {
-      if (typeof value === "string") {
-        const validStatuses = ["pending", "published", "hidden", "all"];
-        const statuses = value.split(",");
-        return statuses.every((status) =>
-          validStatuses.includes(status.trim())
-        );
-      }
-      return ["pending", "published", "hidden", "all"].includes(value);
-    })
-    .withMessage(
-      "Status must be pending, published, hidden, all, or comma-separated list"
-    ),
-
-  // Rating filters
-  query("min_rating")
-    .optional()
-    .isInt({ min: 1, max: 5 })
-    .withMessage("Min rating must be between 1 and 5"),
-  query("max_rating")
-    .optional()
-    .isInt({ min: 1, max: 5 })
-    .withMessage("Max rating must be between 1 and 5"),
-  query("exact_rating")
-    .optional()
-    .isInt({ min: 1, max: 5 })
-    .withMessage("Exact rating must be between 1 and 5"),
-
-  // Search filters
-  query("search")
-    .optional()
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Search term must be between 1 and 100 characters"),
-  query("author_name")
-    .optional()
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Author name must be between 1 and 100 characters"),
-
-  // Date filters
-  query("date_from")
-    .optional()
-    .isDate()
-    .withMessage("Invalid date_from format"),
-  query("date_to").optional().isDate().withMessage("Invalid date_to format"),
-
-  // Album filters
-  query("linked_album_id")
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage("Album ID must be a positive integer"),
-  query("has_album")
-    .optional()
-    .isBoolean()
-    .withMessage("has_album must be boolean"),
-
-  // Image filter
-  query("has_image")
-    .optional()
-    .isBoolean()
-    .withMessage("has_image must be boolean"),
-
-  // Sorting
+    .isIn(["pending", "published", "hidden"])
+    .withMessage("الحالة يجب أن تكون: pending أو published أو hidden"),
+  query("rating").optional().isInt({ min: 1, max: 5 }).toInt(),
+  query("linked_album_id").optional().isInt({ min: 1 }).toInt(),
+  query("has_image").optional().isBoolean().toBoolean(),
   query("sort_by")
     .optional()
-    .isIn(["created_at", "rating", "author_name", "status", "album_title"])
-    .withMessage(
-      "sort_by must be created_at, rating, author_name, status, or album_title"
-    ),
+    .isIn(["created_at", "rating", "author_name"])
+    .withMessage("يمكن الترتيب حسب: created_at أو rating أو author_name"),
   query("sort_order")
     .optional()
     .isIn(["asc", "desc"])
-    .withMessage("sort_order must be asc or desc"),
+    .withMessage("ترتيب الفرز يجب أن يكون: asc أو desc"),
 ];
 
-// Bulk operations validation
-const bulkValidation = [
-  body("ids")
-    .isArray({ min: 1 })
-    .withMessage("IDs array is required")
-    .custom((ids) => {
-      return ids.every((id) => Number.isInteger(id) && id > 0);
-    })
-    .withMessage("All IDs must be positive integers"),
-];
+/**
+ * ==================== Public Routes ====================
+ */
 
-const bulkUpdateValidation = [
-  ...bulkValidation,
-  body("status")
-    .optional()
-    .isIn(["pending", "published", "hidden"])
-    .withMessage("Status must be pending, published, or hidden"),
-  body("linked_album_id")
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage("Album ID must be a positive integer"),
-];
-
-// Export validation
-const exportValidation = [
-  query("format")
-    .optional()
-    .isIn(["csv", "json", "xlsx"])
-    .withMessage("Format must be csv, json, or xlsx"),
-  ...queryValidation, // Include all search filters for export
-];
-
-// Public routes
+/**
+ * @route   GET /api/reviews
+ * @desc    الحصول على جميع التقييمات المنشورة
+ * @access  Public
+ */
 router.get("/", queryValidation, validate, getAll);
+
+/**
+ * @route   GET /api/reviews/featured
+ * @desc    الحصول على التقييمات المميزة
+ * @access  Public
+ */
 router.get("/featured", getFeatured);
+
+/**
+ * @route   POST /api/reviews
+ * @desc    إنشاء تقييم جديد (مع صورة اختيارية)
+ * @access  Public (مع rate limiting)
+ *
+ * ⚠️ UPDATED: يستخدم Cloudinary لرفع صورة التقييم
+ */
 router.post(
   "/",
   formLimiter,
-  upload.single("review_image"),
+  uploadReviewImage.single("review_image"), // Cloudinary middleware
   createReviewValidation,
   validate,
   create
 );
 
-// Admin routes
+/**
+ * ==================== Admin Routes ====================
+ */
 router.use("/admin", authGuard);
 
-// Basic admin operations
-router.get("/admin", queryValidation, validate, getAllAdmin);
+/**
+ * @route   GET /api/reviews/admin
+ * @desc    الحصول على جميع التقييمات (مع فلترة)
+ * @access  Private (Admin only)
+ */
+router.get("/admin", queryValidation, validate, getAll);
+
+/**
+ * @route   GET /api/reviews/admin/stats
+ * @desc    الحصول على إحصائيات التقييمات
+ * @access  Private (Admin only)
+ */
 router.get("/admin/stats", getStats);
+
+/**
+ * @route   GET /api/reviews/admin/:id
+ * @desc    الحصول على تقييم معين
+ * @access  Private (Admin only)
+ */
 router.get("/admin/:id", getById);
+
+/**
+ * @route   PUT /api/reviews/admin/:id
+ * @desc    تحديث تقييم معين
+ * @access  Private (Admin only)
+ */
 router.put("/admin/:id", updateReviewValidation, validate, update);
+
+/**
+ * @route   PUT /api/reviews/admin/:id/status
+ * @desc    تغيير حالة تقييم معين
+ * @access  Private (Admin only)
+ */
 router.put("/admin/:id/status", statusValidation, validate, changeStatus);
+
+/**
+ * @route   DELETE /api/reviews/admin/:id
+ * @desc    حذف تقييم معين (من DB و Cloudinary)
+ * @access  Private (Admin only)
+ */
 router.delete("/admin/:id", deleteReview);
 
-// Advanced admin features would be added here
-// For now, we'll focus on the core functionality that the frontend needs
+// Advanced admin features can be added here later
 
 export default router;

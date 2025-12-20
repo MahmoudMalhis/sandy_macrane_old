@@ -1,32 +1,31 @@
-import express from "express";
 import cors from "cors";
+import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
-import path from "path";
+import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { dirname } from "path";
 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 
+import { authGuard } from "./middlewares/authGuard.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { rateLimiter } from "./middlewares/rateLimiter.js";
-import { authGuard } from "./middlewares/authGuard.js";
-import { upload, processUploadedFiles } from "./utils/upload.js";
+import { uploadSettingsImage } from "./utils/upload.js";
 
 
-import authRoutes from "./module/auth/router.js";
-import albumsRoutes from "./module/albums/router.js";
-import mediaRoutes from "./module/media/router.js";
-import reviewsRoutes from "./module/reviews/router.js";
-import inquiriesRoutes from "./module/inquiries/router.js";
-import settingsRoutes from "./module/settings/router.js";
 import adminRoutes from "./module/admin/router.js";
 import likesRoutes from "./module/albums/likes.routes.js";
+import albumsRoutes from "./module/albums/router.js";
+import authRoutes from "./module/auth/router.js";
 import contactRoutes from "./module/contact/router.js";
 import fcmRouter from "./module/fcm/router.js";
+import inquiriesRoutes from "./module/inquiries/router.js";
+import mediaRoutes from "./module/media/router.js";
+import reviewsRoutes from "./module/reviews/router.js";
+import settingsRoutes from "./module/settings/router.js";
 
 const app = express();
 
@@ -99,30 +98,45 @@ app.get("/", (req, res) => {
 });
 
 
-app.post("/api/media/upload", authGuard, upload.single("file"), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
+app.post(
+  "/api/media/upload",
+  authGuard,
+  uploadSettingsImage.single("file"),
+  (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "لم يتم رفع أي ملف",
+        });
+      }
+
+      
+      const processedFile = {
+        filename: req.file.filename, 
+        originalname: req.file.originalname,
+        path: req.file.path, 
+        url: req.file.path, 
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        cloudinary_id: req.file.filename,
+      };
+
+      res.json({
+        success: true,
+        message: "تم رفع الملف بنجاح",
+        data: processedFile,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({
         success: false,
-        message: "No file uploaded",
+        message: "فشل في رفع الملف",
+        error: error.message,
       });
     }
-
-    const processedFile = processUploadedFiles(req, [req.file])[0];
-
-    res.json({
-      success: true,
-      message: "File uploaded successfully",
-      data: processedFile,
-    });
-  } catch (error) {
-    console.error("Upload error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to upload file",
-    });
   }
-});
+);
 
 
 app.use("/api/auth", authRoutes);

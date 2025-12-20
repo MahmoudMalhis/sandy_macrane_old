@@ -1,80 +1,107 @@
+// server/src/module/reviews/controller.js - UPDATED CREATE METHOD
+
 import {
   create as _create,
   getAll as _getAll,
   getById as _getById,
   update as _update,
-  changeStatus as _changeStatus,
   deleteReview as _delete,
-  getFeatured as _getFeatured,
+  changeStatus as _changeStatus,
   getStats as _getStats,
+  getFeatured as _getFeatured,
 } from "./service.js";
-import { processUploadedFiles } from "../../utils/upload.js";
 import { info, error as _error } from "../../utils/logger.js";
-import { notifyNewReview } from "../../utils/fcm.js";
+import { deleteFile } from "../../utils/upload.js";
+
 class ReviewsController {
+  /**
+   * إنشاء تقييم جديد (Public)
+   * @route POST /api/reviews
+   *
+   * ⚠️ UPDATED: يتعامل مع صور Cloudinary
+   */
   static async create(req, res) {
     try {
       const { author_name, rating, text, linked_album_id } = req.body;
 
-      let attached_image = null;
-      if (req.file) {
-        const processedFiles = processUploadedFiles(req, [req.file]);
-        attached_image = processedFiles[0].url;
-      }
-
-      const review = await _create({
+      // إعداد بيانات التقييم
+      const reviewData = {
         author_name,
         rating: parseInt(rating),
         text,
-        attached_image,
         linked_album_id: linked_album_id ? parseInt(linked_album_id) : null,
-      });
+        status: "pending", // جميع التقييمات تبدأ بحالة pending
+      };
 
-      info("New review created", {
-        reviewId: review.id,
-        author_name,
-        rating: parseInt(rating),
-        linked_album_id,
-      });
-
-      try {
-        await notifyNewReview(review);
-      } catch (notifError) {
-        _error("Failed to send review notification", {
-          error: notifError.message,
-          reviewId: review.id,
-        });
+      // إضافة صورة التقييم إذا تم رفعها (من Cloudinary)
+      if (req.file) {
+        reviewData.attached_image = req.file.path; // Cloudinary URL
+        reviewData.cloudinary_id = req.file.filename; // Public ID
       }
+
+      // إنشاء التقييم في قاعدة البيانات
+      const review = await _create(reviewData);
+
+      info("New review created with Cloudinary image", {
+        reviewId: review.id,
+        author: author_name,
+        rating,
+        hasImage: !!req.file,
+      });
 
       res.status(201).json({
         success: true,
-        message: "تم إرسال تقييمك بنجاح وسيظهر بعد المراجعة",
+        message: "تم إنشاء التقييم بنجاح وسيتم مراجعته قريباً",
         data: review,
       });
     } catch (error) {
       _error("Create review failed", {
-        reviewData: req.body,
         error: error.message,
+        body: req.body,
       });
 
       res.status(500).json({
         success: false,
-        message: "فشل في إرسال التقييم، يرجى المحاولة مرة أخرى",
+        message: "فشل في إنشاء التقييم",
+        error: error.message,
       });
     }
   }
 
+  /**
+   * الحصول على جميع التقييمات (Public)
+   * @route GET /api/reviews
+   */
   static async getAll(req, res) {
     try {
-      const { linked_album_id, page, limit } = req.query;
+      const {
+        page = 1,
+        limit = 10,
+        status = "published",
+        rating,
+        linked_album_id,
+        has_image,
+        sort_by = "created_at",
+        sort_order = "desc",
+      } = req.query;
+
+      const filters = {
+        status,
+        ...(rating && { rating: parseInt(rating) }),
+        ...(linked_album_id && {
+          linked_album_id: parseInt(linked_album_id),
+        }),
+        ...(has_image !== undefined && {
+          has_image: has_image === "true",
+        }),
+      };
 
       const result = await _getAll({
-        status: "published",
-        linked_album_id: linked_album_id
-          ? parseInt(linked_album_id)
-          : undefined,
-        page: parseInt(page) || 1,
-        limit: parseInt(limit) || 12,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        filters,
+        sort_by,
+        sort_order,
       });
 
       res.json({
@@ -84,24 +111,48 @@ class ReviewsController {
       });
     } catch (error) {
       _error("Get reviews failed", { error: error.message });
+
       res.status(500).json({
         success: false,
-        message: "Failed to fetch reviews",
+        message: "فشل في تحميل التقييمات",
       });
     }
   }
 
-  static async getAllAdmin(req, res) {
+  /**
+   * الحصول على جميع التقييمات (Admin)
+   * @route GET /api/reviews/admin
+   */
+  static async getAll(req, res) {
     try {
-      const { status, linked_album_id, page, limit } = req.query;
+      const {
+        page = 1,
+        limit = 20,
+        status,
+        rating,
+        linked_album_id,
+        has_image,
+        sort_by = "created_at",
+        sort_order = "desc",
+      } = req.query;
+
+      const filters = {
+        ...(status && { status }),
+        ...(rating && { rating: parseInt(rating) }),
+        ...(linked_album_id && {
+          linked_album_id: parseInt(linked_album_id),
+        }),
+        ...(has_image !== undefined && {
+          has_image: has_image === "true",
+        }),
+      };
 
       const result = await _getAll({
-        status,
-        linked_album_id: linked_album_id
-          ? parseInt(linked_album_id)
-          : undefined,
-        page: parseInt(page) || 1,
-        limit: parseInt(limit) || 12,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        filters,
+        sort_by,
+        sort_order,
       });
 
       res.json({
@@ -110,14 +161,19 @@ class ReviewsController {
         pagination: result.pagination,
       });
     } catch (error) {
-      _error("Get reviews admin failed", { error: error.message });
+      _error("Get admin reviews failed", { error: error.message });
+
       res.status(500).json({
         success: false,
-        message: "Failed to fetch reviews",
+        message: "فشل في تحميل التقييمات",
       });
     }
   }
 
+  /**
+   * الحصول على تقييم معين
+   * @route GET /api/reviews/admin/:id
+   */
   static async getById(req, res) {
     try {
       const { id } = req.params;
@@ -131,22 +187,26 @@ class ReviewsController {
       if (error.message === "Review not found") {
         return res.status(404).json({
           success: false,
-          message: "Review not found",
+          message: "التقييم غير موجود",
         });
       }
 
-      _error("Get review failed", {
+      _error("Get review by ID failed", {
         reviewId: req.params.id,
         error: error.message,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to fetch review",
+        message: "فشل في تحميل التقييم",
       });
     }
   }
 
+  /**
+   * تحديث تقييم معين
+   * @route PUT /api/reviews/admin/:id
+   */
   static async update(req, res) {
     try {
       const { id } = req.params;
@@ -161,30 +221,84 @@ class ReviewsController {
 
       res.json({
         success: true,
-        message: "Review updated successfully",
+        message: "تم تحديث التقييم بنجاح",
         data: review,
       });
     } catch (error) {
       if (error.message === "Review not found") {
         return res.status(404).json({
           success: false,
-          message: "Review not found",
+          message: "التقييم غير موجود",
         });
       }
 
       _error("Update review failed", {
         reviewId: req.params.id,
-        updatedBy: req.user?.email,
         error: error.message,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to update review",
+        message: "فشل في تحديث التقييم",
       });
     }
   }
 
+  /**
+   * حذف تقييم معين
+   * @route DELETE /api/reviews/admin/:id
+   *
+   * ⚠️ UPDATED: يحذف الصورة من Cloudinary أيضاً
+   */
+  static async deleteReview(req, res) {
+    try {
+      const { id } = req.params;
+
+      // الحصول على بيانات التقييم قبل الحذف
+      const review = await _getById(parseInt(id));
+
+      // حذف من قاعدة البيانات
+      await _delete(parseInt(id));
+
+      // حذف الصورة من Cloudinary إذا كانت موجودة
+      if (review.attached_image) {
+        await deleteFile(review.attached_image);
+      }
+
+      info("Review deleted from DB and Cloudinary", {
+        reviewId: parseInt(id),
+        deletedBy: req.user.email,
+        hadImage: !!review.attached_image,
+      });
+
+      res.json({
+        success: true,
+        message: "تم حذف التقييم بنجاح",
+      });
+    } catch (error) {
+      if (error.message === "Review not found") {
+        return res.status(404).json({
+          success: false,
+          message: "التقييم غير موجود",
+        });
+      }
+
+      _error("Delete review failed", {
+        reviewId: req.params.id,
+        error: error.message,
+      });
+
+      res.status(500).json({
+        success: false,
+        message: "فشل في حذف التقييم",
+      });
+    }
+  }
+
+  /**
+   * تغيير حالة تقييم معين
+   * @route PUT /api/reviews/admin/:id/status
+   */
   static async changeStatus(req, res) {
     try {
       const { id } = req.params;
@@ -200,71 +314,64 @@ class ReviewsController {
 
       res.json({
         success: true,
-        message: "Review status updated successfully",
+        message: `تم تغيير حالة التقييم إلى ${status}`,
         data: review,
       });
     } catch (error) {
       if (error.message === "Review not found") {
         return res.status(404).json({
           success: false,
-          message: "Review not found",
+          message: "التقييم غير موجود",
         });
       }
 
       _error("Change review status failed", {
         reviewId: req.params.id,
-        changedBy: req.user?.email,
         error: error.message,
       });
 
       res.status(500).json({
         success: false,
-        message: "Failed to update review status",
+        message: "فشل في تغيير حالة التقييم",
       });
     }
   }
 
-  static async delete(req, res) {
+  /**
+   * الحصول على إحصائيات التقييمات
+   * @route GET /api/reviews/admin/stats
+   */
+  static async getStats(req, res) {
     try {
-      const { id } = req.params;
-      const review = await _delete(parseInt(id));
+      const { dateFrom, dateTo } = req.query;
 
-      info("Review deleted", {
-        reviewId: parseInt(id),
-        author: review.author_name,
-        deletedBy: req.user.email,
-      });
+      const dateRange =
+        dateFrom && dateTo ? { from: dateFrom, to: dateTo } : null;
+
+      const stats = await _getStats(dateRange);
 
       res.json({
         success: true,
-        message: "Review deleted successfully",
-        data: review,
+        data: stats,
       });
     } catch (error) {
-      if (error.message === "Review not found") {
-        return res.status(404).json({
-          success: false,
-          message: "Review not found",
-        });
-      }
-
-      _error("Delete review failed", {
-        reviewId: req.params.id,
-        deletedBy: req.user?.email,
-        error: error.message,
-      });
+      _error("Get review stats failed", { error: error.message });
 
       res.status(500).json({
         success: false,
-        message: "Failed to delete review",
+        message: "فشل في تحميل الإحصائيات",
       });
     }
   }
 
+  /**
+   * الحصول على التقييمات المميزة
+   * @route GET /api/reviews/featured
+   */
   static async getFeatured(req, res) {
     try {
-      const { limit } = req.query;
-      const reviews = await _getFeatured(parseInt(limit) || 3);
+      const limit = parseInt(req.query.limit) || 3;
+      const reviews = await _getFeatured(limit);
 
       res.json({
         success: true,
@@ -272,39 +379,24 @@ class ReviewsController {
       });
     } catch (error) {
       _error("Get featured reviews failed", { error: error.message });
+
       res.status(500).json({
         success: false,
-        message: "Failed to fetch featured reviews",
-      });
-    }
-  }
-
-  static async getStats(req, res) {
-    try {
-      const stats = await _getStats();
-
-      res.json({
-        success: true,
-        data: stats,
-      });
-    } catch (error) {
-      _error("Get reviews stats failed", { error: error.message });
-      res.status(500).json({
-        success: false,
-        message: "Failed to fetch statistics",
+        message: "فشل في تحميل التقييمات المميزة",
       });
     }
   }
 }
 
+// Export methods
 export const create = ReviewsController.create;
 export const getAll = ReviewsController.getAll;
-export const getAllAdmin = ReviewsController.getAllAdmin;
+export const getAllAdmin = ReviewsController.getAll;
 export const getById = ReviewsController.getById;
 export const update = ReviewsController.update;
+export const deleteReview = ReviewsController.deleteReview;
 export const changeStatus = ReviewsController.changeStatus;
-export const getFeatured = ReviewsController.getFeatured;
 export const getStats = ReviewsController.getStats;
-export const deleteReview = ReviewsController.delete.bind(ReviewsController);
+export const getFeatured = ReviewsController.getFeatured;
 
 export default ReviewsController;
