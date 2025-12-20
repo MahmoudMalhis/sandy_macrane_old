@@ -241,7 +241,7 @@ export default function Footer() {
             <div className="flex items-center gap-2 text-xs">
               <span className="text-gray-500">تطوير:</span>
               <a
-                href=""
+                href="https://wa.me/970567330331"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-pink hover:text-purple transition-colors duration-300 font-semibold flex items-center gap-1 group"
