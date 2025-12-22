@@ -111,7 +111,7 @@ const AIChatbot = ({ enabled = true, phoneNumber }) => {
 
   // إرسال رسالة للـ Gemini API
   const sendMessageToAI = async (userMessage) => {
-    const GEMINI_API_KEY = "AIzaSyCUUQGNquOPxYkMJ05C8nYXfXUfrlqfruo"; // ضع API Key هنا
+    const GEMINI_API_KEY = "AIzaSyCgmqUKAPuuy787kDiVzhqHZi3fmgeEmB4"; // ضع API Key هنا
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
 
     try {
